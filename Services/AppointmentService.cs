@@ -134,17 +134,12 @@ public class AppointmentService : IAppointmentService
             _db.Appointments.Find(appointmentId);
 
         if (appointment == null)
-            throw new Exception(
-                "Randevu bulunamadı."
-            );
+            throw new Exception("Randevu bulunamadı.");
 
-        if (appointment.Status !=
-            AppointmentStatus.Pending)
-        {
+        if (appointment.Status != AppointmentStatus.Pending)
             throw new Exception(
                 "Sadece bekleyen randevular onaylanabilir."
             );
-        }
 
         appointment.Status =
             AppointmentStatus.Approved;
@@ -159,8 +154,21 @@ public class AppointmentService : IAppointmentService
             _db.Appointments.Find(appointmentId);
 
         if (appointment == null)
+            throw new Exception("Randevu bulunamadı.");
+
+        if (appointment.Status == AppointmentStatus.Completed)
             throw new Exception(
-                "Randevu bulunamadı."
+                "Tamamlanmış randevu iptal edilemez."
+            );
+
+        if (appointment.Status == AppointmentStatus.Rejected)
+            throw new Exception(
+                "Reddedilmiş randevu iptal edilemez."
+            );
+
+        if (appointment.Status == AppointmentStatus.Cancelled)
+            throw new Exception(
+                "Randevu zaten iptal edilmiş."
             );
 
         appointment.Status =
@@ -186,4 +194,41 @@ public class AppointmentService : IAppointmentService
 
             .ToList();
     }
+
+    public void RejectAppointment(int appointmentId)
+    {
+        var appointment =
+            _db.Appointments.Find(appointmentId);
+
+        if (appointment == null)
+            throw new Exception("Randevu bulunamadı.");
+
+        if (appointment.Status != AppointmentStatus.Pending)
+            throw new Exception(
+                "Sadece bekleyen randevular reddedilebilir."
+            );
+
+        appointment.Status =
+            AppointmentStatus.Rejected;
+
+        _db.SaveChanges();
+    }
+
+    public List<Appointment> GetPendingAppointments()
+    {
+        return _db.Appointments
+            .Include(a => a.Patient)
+            .Include(a => a.Doctor)
+            .Include(a => a.Branch)
+            .Include(a => a.HealthService)
+
+            .Where(a =>
+                a.Status == AppointmentStatus.Pending)
+
+            .OrderBy(a =>
+                a.StartDateTime)
+
+            .ToList();
+    }
 }
+

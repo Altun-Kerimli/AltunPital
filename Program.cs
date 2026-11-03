@@ -5,14 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using var db = new AppDbContext();
 
 db.Database.Migrate();
-
 SeedData.Initialize(db);
 
-
-// TEST sırasında eski randevuları temizle.
+// Eski test randevularını temizle
 db.Appointments.RemoveRange(db.Appointments);
 db.SaveChanges();
-
 
 var scheduleService =
     new ScheduleService(db);
@@ -20,10 +17,11 @@ var scheduleService =
 var appointmentService =
     new AppointmentService(
         db,
-        scheduleService);
+        scheduleService
+    );
 
 
-// Bir sonraki pazartesiyi bul.
+// Sonraki pazartesi
 DateTime today = DateTime.Today;
 
 int daysUntilMonday =
@@ -37,93 +35,133 @@ DateTime monday =
     today.AddDays(daysUntilMonday);
 
 
-// 10:00 randevusu
-DateTime appointmentTime =
-    monday.AddHours(10);
+// ----------------------------
+// 1. RANDEVU OLUŞTUR
+// ----------------------------
 
-
-Console.WriteLine(
-    "=== RANDEVU TESTİ ==="
-);
-
-Console.WriteLine(
-    $"Test tarihi: {appointmentTime}"
-);
-
-
-try
-{
-    var appointment =
-        appointmentService.CreateAppointment(
-            patientId: 2,
-            doctorId: 1,
-            branchId: 1,
-            healthServiceId: 2,
-            startDateTime: appointmentTime
-        );
-
-    Console.WriteLine();
-    Console.WriteLine("RANDEVU OLUŞTURULDU");
-
-    Console.WriteLine(
-        $"ID: {appointment.AppointmentId}"
-    );
-
-    Console.WriteLine(
-        $"Saat: {appointment.StartDateTime}"
-    );
-
-    Console.WriteLine(
-        $"Bitiş: {appointment.EndDateTime}"
-    );
-
-    Console.WriteLine(
-        $"Fiyat: {appointment.Price} TL"
-    );
-
-    Console.WriteLine(
-        $"Durum: {appointment.Status}"
-    );
-
-
-    Console.WriteLine();
-    Console.WriteLine(
-        "Aynı saate ikinci randevu deneniyor..."
-    );
-
-
+var appointment =
     appointmentService.CreateAppointment(
         patientId: 2,
         doctorId: 1,
         branchId: 1,
         healthServiceId: 2,
-        startDateTime: appointmentTime
+        startDateTime: monday.AddHours(10)
+    );
+
+Console.WriteLine(
+    $"Randevu oluşturuldu: {appointment.Status}"
+);
+
+
+// ----------------------------
+// 2. PENDING LISTESİ
+// ----------------------------
+
+Console.WriteLine();
+Console.WriteLine("=== BEKLEYEN RANDEVULAR ===");
+
+var pending =
+    appointmentService.GetPendingAppointments();
+
+foreach (var a in pending)
+{
+    Console.WriteLine(
+        $"ID: {a.AppointmentId} | " +
+        $"{a.Patient.FirstName} {a.Patient.LastName} | " +
+        $"{a.Doctor.FirstName} {a.Doctor.LastName} | " +
+        $"{a.HealthService.Name} | " +
+        $"{a.StartDateTime}"
+    );
+}
+
+
+// ----------------------------
+// 3. ONAYLA
+// ----------------------------
+
+appointmentService.ApproveAppointment(
+    appointment.AppointmentId
+);
+
+var approved =
+    db.Appointments.Find(
+        appointment.AppointmentId
+    );
+
+Console.WriteLine();
+Console.WriteLine(
+    $"Onay sonrası durum: {approved?.Status}"
+);
+
+
+// ----------------------------
+// 4. AYNI RANDEVUYU TEKRAR ONAYLA
+// ----------------------------
+
+try
+{
+    appointmentService.ApproveAppointment(
+        appointment.AppointmentId
     );
 }
 catch (Exception ex)
 {
-    Console.WriteLine();
     Console.WriteLine(
-        $"BEKLENEN RED: {ex.Message}"
+        $"Beklenen hata: {ex.Message}"
     );
 }
 
 
-Console.WriteLine();
-Console.WriteLine(
-    "=== UYGUN SAATLER ==="
+// ----------------------------
+// 5. İPTAL ET
+// ----------------------------
+
+appointmentService.CancelAppointment(
+    appointment.AppointmentId
 );
 
-var slots =
-    scheduleService.GetAvailableSlots(
-        doctorId: 1,
-        healthServiceId: 2,
-        DateOnly.FromDateTime(monday)
+var cancelled =
+    db.Appointments.Find(
+        appointment.AppointmentId
     );
 
-foreach (var slot in slots)
-{
-    Console.WriteLine(
-        slot.ToString("HH:mm")
+Console.WriteLine(
+    $"İptal sonrası durum: {cancelled?.Status}"
+);
+
+
+// ----------------------------
+// 6. İPTAL SONRASI AYNI SAATİ TEKRAR AL
+// ----------------------------
+
+var newAppointment =
+    appointmentService.CreateAppointment(
+        patientId: 2,
+        doctorId: 1,
+        branchId: 1,
+        healthServiceId: 2,
+        startDateTime: monday.AddHours(10)
     );
-}
+
+Console.WriteLine(
+    $"İptal sonrası aynı saat tekrar alındı: " +
+    $"{newAppointment.Status}"
+);
+
+
+// ----------------------------
+// 7. REDDET
+// ----------------------------
+
+appointmentService.RejectAppointment(
+    newAppointment.AppointmentId
+);
+
+var rejected =
+    db.Appointments.Find(
+        newAppointment.AppointmentId
+    );
+
+Console.WriteLine(
+    $"Red sonrası durum: {rejected?.Status}"
+);

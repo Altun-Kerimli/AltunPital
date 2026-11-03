@@ -19,7 +19,11 @@ public interface IAppointmentService
 
     void ApproveAppointment(int appointmentId);
 
+    void RejectAppointment(int appointmentId);
+
     void CancelAppointment(int appointmentId);
 
     List<Appointment> GetPatientAppointments(int patientId);
+
+    List<Appointment> GetPendingAppointments();
 }
