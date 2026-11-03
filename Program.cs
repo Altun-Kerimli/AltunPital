@@ -1,179 +1,129 @@
-﻿// See https://aka.ms/new-console-template for more information
-using AltunPital.Data;
-
+﻿using AltunPital.Data;
+using AltunPital.Services;
 using Microsoft.EntityFrameworkCore;
-
-//using var db = new AppDbContext();
-
-//db.Database.Migrate();
-
-//SeedData.Initialize(db);
-
-//Console.WriteLine("AltunPital veritabanı hazır.");
 
 using var db = new AppDbContext();
 
 db.Database.Migrate();
+
 SeedData.Initialize(db);
 
-Console.WriteLine("=== ALTUNPITAL DB TEST ===");
-Console.WriteLine();
+
+// TEST sırasında eski randevuları temizle.
+db.Appointments.RemoveRange(db.Appointments);
+db.SaveChanges();
 
 
-// 1. Hospital + Branch testi
-var hospitals = db.Hospitals
-    .Include(h => h.Branches)
-    .ToList();
+var scheduleService =
+    new ScheduleService(db);
 
-Console.WriteLine("HASTANELER:");
+var appointmentService =
+    new AppointmentService(
+        db,
+        scheduleService);
 
-foreach (var hospital in hospitals)
+
+// Bir sonraki pazartesiyi bul.
+DateTime today = DateTime.Today;
+
+int daysUntilMonday =
+    ((int)DayOfWeek.Monday -
+     (int)today.DayOfWeek + 7) % 7;
+
+if (daysUntilMonday == 0)
+    daysUntilMonday = 7;
+
+DateTime monday =
+    today.AddDays(daysUntilMonday);
+
+
+// 10:00 randevusu
+DateTime appointmentTime =
+    monday.AddHours(10);
+
+
+Console.WriteLine(
+    "=== RANDEVU TESTİ ==="
+);
+
+Console.WriteLine(
+    $"Test tarihi: {appointmentTime}"
+);
+
+
+try
 {
-    Console.WriteLine(
-        $"HospitalId: {hospital.HospitalId} | " +
-        $"Name: {hospital.Name}"
-    );
-
-    foreach (var branch in hospital.Branches)
-    {
-        Console.WriteLine(
-            $"  -> BranchId: {branch.BranchId} | " +
-            $"{branch.Name} | HospitalId: {branch.HospitalId}"
+    var appointment =
+        appointmentService.CreateAppointment(
+            patientId: 2,
+            doctorId: 1,
+            branchId: 1,
+            healthServiceId: 2,
+            startDateTime: appointmentTime
         );
-    }
+
+    Console.WriteLine();
+    Console.WriteLine("RANDEVU OLUŞTURULDU");
+
+    Console.WriteLine(
+        $"ID: {appointment.AppointmentId}"
+    );
+
+    Console.WriteLine(
+        $"Saat: {appointment.StartDateTime}"
+    );
+
+    Console.WriteLine(
+        $"Bitiş: {appointment.EndDateTime}"
+    );
+
+    Console.WriteLine(
+        $"Fiyat: {appointment.Price} TL"
+    );
+
+    Console.WriteLine(
+        $"Durum: {appointment.Status}"
+    );
+
+
+    Console.WriteLine();
+    Console.WriteLine(
+        "Aynı saate ikinci randevu deneniyor..."
+    );
+
+
+    appointmentService.CreateAppointment(
+        patientId: 2,
+        doctorId: 1,
+        branchId: 1,
+        healthServiceId: 2,
+        startDateTime: appointmentTime
+    );
+}
+catch (Exception ex)
+{
+    Console.WriteLine();
+    Console.WriteLine(
+        $"BEKLENEN RED: {ex.Message}"
+    );
 }
 
+
 Console.WriteLine();
+Console.WriteLine(
+    "=== UYGUN SAATLER ==="
+);
 
+var slots =
+    scheduleService.GetAvailableSlots(
+        doctorId: 1,
+        healthServiceId: 2,
+        DateOnly.FromDateTime(monday)
+    );
 
-// 2. Branch + Department testi
-var branches = db.Branches
-    .Include(b => b.Departments)
-    .ToList();
-
-Console.WriteLine("ŞUBELER VE BÖLÜMLER:");
-
-foreach (var branch in branches)
+foreach (var slot in slots)
 {
     Console.WriteLine(
-        $"{branch.Name} - ID: {branch.BranchId}"
-    );
-
-    foreach (var department in branch.Departments)
-    {
-        Console.WriteLine(
-            $"  -> {department.Name} | " +
-            $"DepartmentId: {department.DepartmentId} | " +
-            $"BranchId: {department.BranchId}"
-        );
-    }
-}
-
-Console.WriteLine();
-
-
-// 3. Şube + Hizmet + Fiyat testi
-var branchServices = db.BranchServices
-    .Include(bs => bs.Branch)
-    .Include(bs => bs.HealthService)
-    .ToList();
-
-Console.WriteLine("ŞUBE HİZMETLERİ:");
-
-foreach (var bs in branchServices)
-{
-    Console.WriteLine(
-        $"{bs.Branch.Name} | " +
-        $"{bs.HealthService.Name} | " +
-        $"{bs.Price} TL | " +
-        $"Aktif: {bs.IsAvailable}"
+        slot.ToString("HH:mm")
     );
 }
-
-Console.WriteLine();
-
-
-// 4. Doktor + Branch + Department testi
-var doctors = db.Doctors
-    .Include(d => d.Branch)
-    .Include(d => d.Department)
-    .ToList();
-
-Console.WriteLine("DOKTORLAR:");
-
-foreach (var doctor in doctors)
-{
-    Console.WriteLine(
-        $"Doctor UserId: {doctor.UserId} | " +
-        $"{doctor.FirstName} {doctor.LastName} | " +
-        $"Uzmanlık: {doctor.Specialization}"
-    );
-
-    Console.WriteLine(
-        $"  -> Şube: {doctor.Branch.Name} | " +
-        $"BranchId: {doctor.BranchId}"
-    );
-
-    Console.WriteLine(
-        $"  -> Bölüm: {doctor.Department?.Name} | " +
-        $"DepartmentId: {doctor.DepartmentId}"
-    );
-}
-
-Console.WriteLine();
-
-
-// 5. Hastalar
-var patients = db.Patients.ToList();
-
-Console.WriteLine("HASTALAR:");
-
-foreach (var patient in patients)
-{
-    Console.WriteLine(
-        $"Patient UserId: {patient.UserId} | " +
-        $"{patient.FirstName} {patient.LastName} | " +
-        $"{patient.Email}"
-    );
-}
-
-Console.WriteLine();
-
-
-// 6. Doktor çalışma saatleri
-var schedules = db.DoctorSchedules
-    .Include(s => s.Doctor)
-    .ToList();
-
-Console.WriteLine("DOKTOR ÇALIŞMA SAATLERİ:");
-
-foreach (var schedule in schedules)
-{
-    Console.WriteLine(
-        $"{schedule.Doctor.FirstName} {schedule.Doctor.LastName} | " +
-        $"{schedule.DayOfWeek} | " +
-        $"{schedule.StartTime} - {schedule.EndTime}"
-    );
-}
-
-Console.WriteLine();
-
-
-// 7. Doktorun verdiği hizmetler
-var doctorServices = db.DoctorServices
-    .Include(ds => ds.Doctor)
-    .Include(ds => ds.HealthService)
-    .ToList();
-
-Console.WriteLine("DOKTOR HİZMETLERİ:");
-
-foreach (var ds in doctorServices)
-{
-    Console.WriteLine(
-        $"{ds.Doctor.FirstName} {ds.Doctor.LastName} " +
-        $"-> {ds.HealthService.Name}"
-    );
-}
-
-Console.WriteLine();
-Console.WriteLine("=== DB TEST TAMAMLANDI ===");
