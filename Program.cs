@@ -7,100 +7,256 @@ using var db = new AppDbContext();
 db.Database.Migrate();
 SeedData.Initialize(db);
 
-var employeeService =
-    new EmployeeService(db);
+var managerService =
+    new ManagerService(db);
 
 
 Console.WriteLine(
-    "=== ÇALIŞAN YÖNETİMİ TESTİ ===");
+    "=== YÖNETİCİ CRUD TESTİ ===");
 
 
-// Test doktoru önce varsa temizle
-var oldDoctor =
-    db.Doctors.FirstOrDefault(d =>
-        d.Email ==
-        "mehmet.test@altunpital.local");
+// ------------------------------------------------
+// 1. Test şubesini eski testten kalmışsa temizle
+// ------------------------------------------------
 
-if (oldDoctor != null &&
+var oldBranch =
+    db.Branches.FirstOrDefault(b =>
+        b.Name == "AltunPital Test Şubesi");
+
+if (oldBranch != null &&
+    !db.Employees.Any(e =>
+        e.BranchId == oldBranch.BranchId) &&
     !db.Appointments.Any(a =>
-        a.DoctorId == oldDoctor.UserId))
+        a.BranchId == oldBranch.BranchId))
 {
-    employeeService.DeleteEmployee(
-        oldDoctor.UserId);
+    managerService.DeleteBranch(
+        oldBranch.BranchId);
 }
 
 
-// Doktor oluştur
-var doctor =
-    employeeService.AddDoctor(
-        "Mehmet",
-        "Kaya",
+// ------------------------------------------------
+// 2. ŞUBE CREATE
+// ------------------------------------------------
 
-        "mehmet.test@altunpital.local",
-        "05000000010",
+var branch =
+    managerService.AddBranch(
+        hospitalId: 1,
 
-        "ALT-DOC-TEST",
+        name: "AltunPital Test Şubesi",
 
-        DateTime.Today,
+        city: "Bursa",
+        district: "Nilüfer",
 
-        branchId: 1,
-        departmentId: 1,
+        address: "Test adresi",
 
-        specialization: "Kardiyoloji"
+        phone: "0224 000 00 00",
+
+        openingTime:
+            new TimeOnly(8, 0),
+
+        closingTime:
+            new TimeOnly(18, 0)
     );
 
-
 Console.WriteLine(
-    $"Doktor eklendi: " +
-    $"{doctor.FirstName} {doctor.LastName}");
+    $"Şube eklendi: {branch.Name}");
 
 
-// Hizmet ata
-employeeService.AssignService(
-    doctor.UserId,
-    healthServiceId: 2
+// ------------------------------------------------
+// 3. ŞUBE UPDATE
+// ------------------------------------------------
+
+managerService.UpdateBranch(
+    branch.BranchId,
+
+    "AltunPital Bursa",
+
+    "Bursa",
+    "Nilüfer",
+
+    "Yeni test adresi",
+
+    "0224 111 11 11",
+
+    new TimeOnly(8, 30),
+    new TimeOnly(19, 0)
 );
 
 Console.WriteLine(
-    "Kardiyoloji hizmeti atandı.");
+    "Şube güncellendi.");
 
 
-// Çalışma saati ata
-employeeService.AddSchedule(
-    doctor.UserId,
+// ------------------------------------------------
+// 4. DEPARTMENT CREATE
+// ------------------------------------------------
 
-    DayOfWeek.Friday,
+var department =
+    managerService.AddDepartment(
+        branch.BranchId,
 
-    new TimeOnly(10, 0),
-    new TimeOnly(16, 0)
+        "Nöroloji",
+
+        "Sinir sistemi hastalıkları"
+    );
+
+Console.WriteLine(
+    $"Bölüm eklendi: {department.Name}");
+
+
+// ------------------------------------------------
+// 5. HEALTH SERVICE CREATE
+// ------------------------------------------------
+
+var service =
+    managerService.AddHealthService(
+
+        "Nöroloji Muayenesi",
+
+        "Nöroloji uzman muayenesi",
+
+        durationMinutes: 40
+    );
+
+Console.WriteLine(
+    $"Hizmet eklendi: {service.Name}");
+
+
+// ------------------------------------------------
+// 6. HİZMETİ ŞUBEYE ATA
+// ------------------------------------------------
+
+managerService.AssignServiceToBranch(
+    branch.BranchId,
+    service.HealthServiceId,
+    price: 1750
 );
 
 Console.WriteLine(
-    "Cuma 10:00-16:00 çalışma saati atandı.");
+    "Hizmet şubeye atandı.");
 
 
-// Çalışanları listele
+// ------------------------------------------------
+// 7. FİYATI UPDATE
+// ------------------------------------------------
+
+managerService.UpdateBranchService(
+    branch.BranchId,
+    service.HealthServiceId,
+
+    price: 1900,
+
+    isAvailable: true
+);
+
+var branchService =
+    db.BranchServices
+        .Include(bs =>
+            bs.HealthService)
+        .First(bs =>
+            bs.BranchId ==
+                branch.BranchId &&
+            bs.HealthServiceId ==
+                service.HealthServiceId);
+
+Console.WriteLine(
+    $"Yeni fiyat: {branchService.Price} TL");
+
+
+// ------------------------------------------------
+// 8. EQUIPMENT CREATE
+// ------------------------------------------------
+
+var equipment =
+    managerService.AddEquipment(
+
+        "EEG Cihazı",
+
+        "Elektroensefalografi cihazı"
+    );
+
+Console.WriteLine(
+    $"Ekipman oluşturuldu: {equipment.Name}");
+
+
+// ------------------------------------------------
+// 9. EQUIPMENT BRANCH ASSIGN
+// ------------------------------------------------
+
+managerService.AssignEquipmentToBranch(
+    branch.BranchId,
+    equipment.EquipmentId,
+    quantity: 2
+);
+
+Console.WriteLine(
+    "Ekipman şubeye atandı.");
+
+
+// ------------------------------------------------
+// 10. EQUIPMENT UPDATE
+// ------------------------------------------------
+
+managerService.UpdateBranchEquipment(
+    branch.BranchId,
+    equipment.EquipmentId,
+
+    quantity: 3,
+
+    isOperational: true
+);
+
+Console.WriteLine(
+    "Ekipman adedi güncellendi.");
+
+
+// ------------------------------------------------
+// 11. READ
+// ------------------------------------------------
+
 Console.WriteLine();
-Console.WriteLine(
-    "=== SAKARYA ÇALIŞANLARI ===");
+Console.WriteLine("=== ŞUBELER ===");
 
-var employees =
-    employeeService.GetEmployees(1);
-
-foreach (var employee in employees)
+foreach (var item in
+         managerService.GetBranches())
 {
     Console.WriteLine(
-        $"{employee.UserId} | " +
-        $"{employee.FirstName} " +
-        $"{employee.LastName} | " +
-        $"{employee.EmployeeNumber}");
+        $"{item.BranchId} | " +
+        $"{item.Name} | " +
+        $"{item.City}");
 }
 
 
-// Test silme
-employeeService.DeleteEmployee(
-    doctor.UserId);
+// ------------------------------------------------
+// 12. DELETE TEST
+// ------------------------------------------------
+
+managerService.RemoveEquipmentFromBranch(
+    branch.BranchId,
+    equipment.EquipmentId);
+
+managerService.DeleteEquipment(
+    equipment.EquipmentId);
+
+
+managerService.RemoveServiceFromBranch(
+    branch.BranchId,
+    service.HealthServiceId);
+
+managerService.DeleteHealthService(
+    service.HealthServiceId);
+
+
+managerService.DeleteDepartment(
+    department.DepartmentId);
+
+
+managerService.DeleteBranch(
+    branch.BranchId);
+
 
 Console.WriteLine();
 Console.WriteLine(
-    "Test doktoru başarıyla silindi.");
+    "Test verileri başarıyla silindi.");
+
+Console.WriteLine(
+    "=== YÖNETİCİ CRUD TESTİ TAMAMLANDI ===");
