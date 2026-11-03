@@ -7,161 +7,100 @@ using var db = new AppDbContext();
 db.Database.Migrate();
 SeedData.Initialize(db);
 
-// Eski test randevularını temizle
-db.Appointments.RemoveRange(db.Appointments);
-db.SaveChanges();
+var employeeService =
+    new EmployeeService(db);
 
-var scheduleService =
-    new ScheduleService(db);
-
-var appointmentService =
-    new AppointmentService(
-        db,
-        scheduleService
-    );
-
-
-// Sonraki pazartesi
-DateTime today = DateTime.Today;
-
-int daysUntilMonday =
-    ((int)DayOfWeek.Monday -
-     (int)today.DayOfWeek + 7) % 7;
-
-if (daysUntilMonday == 0)
-    daysUntilMonday = 7;
-
-DateTime monday =
-    today.AddDays(daysUntilMonday);
-
-
-// ----------------------------
-// 1. RANDEVU OLUŞTUR
-// ----------------------------
-
-var appointment =
-    appointmentService.CreateAppointment(
-        patientId: 2,
-        doctorId: 1,
-        branchId: 1,
-        healthServiceId: 2,
-        startDateTime: monday.AddHours(10)
-    );
 
 Console.WriteLine(
-    $"Randevu oluşturuldu: {appointment.Status}"
-);
+    "=== ÇALIŞAN YÖNETİMİ TESTİ ===");
 
 
-// ----------------------------
-// 2. PENDING LISTESİ
-// ----------------------------
+// Test doktoru önce varsa temizle
+var oldDoctor =
+    db.Doctors.FirstOrDefault(d =>
+        d.Email ==
+        "mehmet.test@altunpital.local");
 
-Console.WriteLine();
-Console.WriteLine("=== BEKLEYEN RANDEVULAR ===");
-
-var pending =
-    appointmentService.GetPendingAppointments();
-
-foreach (var a in pending)
+if (oldDoctor != null &&
+    !db.Appointments.Any(a =>
+        a.DoctorId == oldDoctor.UserId))
 {
-    Console.WriteLine(
-        $"ID: {a.AppointmentId} | " +
-        $"{a.Patient.FirstName} {a.Patient.LastName} | " +
-        $"{a.Doctor.FirstName} {a.Doctor.LastName} | " +
-        $"{a.HealthService.Name} | " +
-        $"{a.StartDateTime}"
-    );
+    employeeService.DeleteEmployee(
+        oldDoctor.UserId);
 }
 
 
-// ----------------------------
-// 3. ONAYLA
-// ----------------------------
+// Doktor oluştur
+var doctor =
+    employeeService.AddDoctor(
+        "Mehmet",
+        "Kaya",
 
-appointmentService.ApproveAppointment(
-    appointment.AppointmentId
-);
+        "mehmet.test@altunpital.local",
+        "05000000010",
 
-var approved =
-    db.Appointments.Find(
-        appointment.AppointmentId
+        "ALT-DOC-TEST",
+
+        DateTime.Today,
+
+        branchId: 1,
+        departmentId: 1,
+
+        specialization: "Kardiyoloji"
     );
 
+
+Console.WriteLine(
+    $"Doktor eklendi: " +
+    $"{doctor.FirstName} {doctor.LastName}");
+
+
+// Hizmet ata
+employeeService.AssignService(
+    doctor.UserId,
+    healthServiceId: 2
+);
+
+Console.WriteLine(
+    "Kardiyoloji hizmeti atandı.");
+
+
+// Çalışma saati ata
+employeeService.AddSchedule(
+    doctor.UserId,
+
+    DayOfWeek.Friday,
+
+    new TimeOnly(10, 0),
+    new TimeOnly(16, 0)
+);
+
+Console.WriteLine(
+    "Cuma 10:00-16:00 çalışma saati atandı.");
+
+
+// Çalışanları listele
 Console.WriteLine();
 Console.WriteLine(
-    $"Onay sonrası durum: {approved?.Status}"
-);
+    "=== SAKARYA ÇALIŞANLARI ===");
 
+var employees =
+    employeeService.GetEmployees(1);
 
-// ----------------------------
-// 4. AYNI RANDEVUYU TEKRAR ONAYLA
-// ----------------------------
-
-try
-{
-    appointmentService.ApproveAppointment(
-        appointment.AppointmentId
-    );
-}
-catch (Exception ex)
+foreach (var employee in employees)
 {
     Console.WriteLine(
-        $"Beklenen hata: {ex.Message}"
-    );
+        $"{employee.UserId} | " +
+        $"{employee.FirstName} " +
+        $"{employee.LastName} | " +
+        $"{employee.EmployeeNumber}");
 }
 
 
-// ----------------------------
-// 5. İPTAL ET
-// ----------------------------
+// Test silme
+employeeService.DeleteEmployee(
+    doctor.UserId);
 
-appointmentService.CancelAppointment(
-    appointment.AppointmentId
-);
-
-var cancelled =
-    db.Appointments.Find(
-        appointment.AppointmentId
-    );
-
+Console.WriteLine();
 Console.WriteLine(
-    $"İptal sonrası durum: {cancelled?.Status}"
-);
-
-
-// ----------------------------
-// 6. İPTAL SONRASI AYNI SAATİ TEKRAR AL
-// ----------------------------
-
-var newAppointment =
-    appointmentService.CreateAppointment(
-        patientId: 2,
-        doctorId: 1,
-        branchId: 1,
-        healthServiceId: 2,
-        startDateTime: monday.AddHours(10)
-    );
-
-Console.WriteLine(
-    $"İptal sonrası aynı saat tekrar alındı: " +
-    $"{newAppointment.Status}"
-);
-
-
-// ----------------------------
-// 7. REDDET
-// ----------------------------
-
-appointmentService.RejectAppointment(
-    newAppointment.AppointmentId
-);
-
-var rejected =
-    db.Appointments.Find(
-        newAppointment.AppointmentId
-    );
-
-Console.WriteLine(
-    $"Red sonrası durum: {rejected?.Status}"
-);
+    "Test doktoru başarıyla silindi.");
