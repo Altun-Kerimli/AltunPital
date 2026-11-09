@@ -15,6 +15,7 @@ public interface IEmployeeService
         string lastName,
         string email,
         string phone,
+        string password,
         string employeeNumber,
         DateTime hireDate,
         int branchId,
@@ -26,6 +27,7 @@ public interface IEmployeeService
         string lastName,
         string email,
         string phone,
+        string password,
         string employeeNumber,
         DateTime hireDate,
         int branchId,
@@ -61,5 +63,4 @@ public interface IEmployeeService
         int? branchId = null);
 
     void DeleteEmployee(int employeeId);
-
 }

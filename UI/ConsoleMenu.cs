@@ -33,6 +33,10 @@ public class ConsoleMenu
     }
 
 
+    // =================================================
+    // MAIN MENU
+    // =================================================
+
     public void Start()
     {
         while (true)
@@ -47,8 +51,7 @@ public class ConsoleMenu
 
             Console.Write("\nSeçim: ");
 
-            string? choice =
-                Console.ReadLine();
+            string? choice = Console.ReadLine();
 
             try
             {
@@ -66,15 +69,13 @@ public class ConsoleMenu
                         return;
 
                     default:
-                        Message(
-                            "Geçersiz seçim.");
+                        Message("Geçersiz seçim.");
                         break;
                 }
             }
             catch (Exception ex)
             {
-                Message(
-                    $"Hata: {ex.Message}");
+                Message($"Hata: {ex.Message}");
             }
         }
     }
@@ -88,18 +89,13 @@ public class ConsoleMenu
     {
         Console.Clear();
 
-        Console.WriteLine(
-            "=== GİRİŞ ===");
+        Console.WriteLine("=== GİRİŞ ===");
 
         Console.Write("E-posta: ");
-
-        string email =
-            Console.ReadLine() ?? "";
+        string email = Console.ReadLine() ?? "";
 
         Console.Write("Şifre: ");
-
-        string password =
-            Console.ReadLine() ?? "";
+        string password = Console.ReadLine() ?? "";
 
         User user =
             _authentication.Login(
@@ -138,31 +134,25 @@ public class ConsoleMenu
     {
         Console.Clear();
 
-        Console.WriteLine(
-            "=== HASTA KAYIT ===");
+        Console.WriteLine("=== HASTA KAYIT ===");
 
         Console.Write("Ad: ");
-
         string firstName =
             Console.ReadLine() ?? "";
 
         Console.Write("Soyad: ");
-
         string lastName =
             Console.ReadLine() ?? "";
 
         Console.Write("E-posta: ");
-
         string email =
             Console.ReadLine() ?? "";
 
         Console.Write("Telefon: ");
-
         string phone =
             Console.ReadLine() ?? "";
 
         Console.Write("Şifre: ");
-
         string password =
             Console.ReadLine() ?? "";
 
@@ -190,24 +180,14 @@ public class ConsoleMenu
             Console.Clear();
 
             Console.WriteLine(
-                $"=== HASTA: " +
-                $"{user.FirstName} " +
-                $"{user.LastName} ===");
+                $"=== HASTA: {user.FirstName} {user.LastName} ===");
 
-            Console.WriteLine(
-                "1 - Şubeleri Gör");
-
-            Console.WriteLine(
-                "2 - Randevu Al");
-
-            Console.WriteLine(
-                "3 - Randevularım");
-
-            Console.WriteLine(
-                "4 - Randevu İptal");
-
-            Console.WriteLine(
-                "0 - Çıkış Yap");
+            Console.WriteLine();
+            Console.WriteLine("1 - Şubeleri Gör");
+            Console.WriteLine("2 - Randevu Al");
+            Console.WriteLine("3 - Randevularım");
+            Console.WriteLine("4 - Randevu İptal");
+            Console.WriteLine("0 - Çıkış Yap");
 
             Console.Write("\nSeçim: ");
 
@@ -219,40 +199,30 @@ public class ConsoleMenu
                 switch (choice)
                 {
                     case "1":
-
                         ShowBranches();
                         break;
 
                     case "2":
-
                         CreatePatientAppointment(
                             user.UserId);
-
                         break;
 
                     case "3":
-
                         ShowPatientAppointments(
                             user.UserId);
-
                         break;
 
                     case "4":
-
                         CancelPatientAppointment(
                             user.UserId);
-
                         break;
 
                     case "0":
-
                         return;
 
                     default:
-
                         Message(
                             "Geçersiz seçim.");
-
                         break;
                 }
             }
@@ -294,8 +264,13 @@ public class ConsoleMenu
             "=== RANDEVU AL ===");
 
 
+        // ŞUBE
+
         var branches =
             _patientService.GetBranches();
+
+        Console.WriteLine();
+        Console.WriteLine("Şubeler:");
 
         foreach (var branch in branches)
         {
@@ -308,12 +283,21 @@ public class ConsoleMenu
             ReadInt("Şube ID: ");
 
 
+        // BÖLÜM
+
         var departments =
             _patientService
-                .GetDepartments(branchId);
+                .GetDepartments(
+                    branchId);
 
-        Console.WriteLine(
-            "\nBölümler:");
+        if (departments.Count == 0)
+        {
+            throw new Exception(
+                "Bu şubede bölüm bulunamadı.");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("Bölümler:");
 
         foreach (var department
                  in departments)
@@ -327,10 +311,13 @@ public class ConsoleMenu
             ReadInt("Bölüm ID: ");
 
 
+        // DOKTOR
+
         var doctors =
-            _patientService.GetDoctors(
-                branchId,
-                departmentId);
+            _patientService
+                .GetDoctors(
+                    branchId,
+                    departmentId);
 
         if (doctors.Count == 0)
         {
@@ -338,8 +325,8 @@ public class ConsoleMenu
                 "Bu bölümde doktor bulunamadı.");
         }
 
-        Console.WriteLine(
-            "\nDoktorlar:");
+        Console.WriteLine();
+        Console.WriteLine("Doktorlar:");
 
         foreach (var doctor
                  in doctors)
@@ -355,10 +342,13 @@ public class ConsoleMenu
             ReadInt("Doktor ID: ");
 
 
+        // HİZMET
+
         var services =
-            _patientService.GetServices(
-                branchId,
-                doctorId);
+            _patientService
+                .GetServices(
+                    branchId,
+                    doctorId);
 
         if (services.Count == 0)
         {
@@ -366,8 +356,8 @@ public class ConsoleMenu
                 "Doktor için uygun hizmet bulunamadı.");
         }
 
-        Console.WriteLine(
-            "\nHizmetler:");
+        Console.WriteLine();
+        Console.WriteLine("Hizmetler:");
 
         foreach (var service
                  in services)
@@ -382,6 +372,8 @@ public class ConsoleMenu
             ReadInt("Hizmet ID: ");
 
 
+        // TARİH
+
         Console.Write(
             "Tarih (yyyy-MM-dd): ");
 
@@ -393,6 +385,8 @@ public class ConsoleMenu
                 "Geçersiz tarih.");
         }
 
+
+        // SAAT
 
         var slots =
             _patientService
@@ -407,8 +401,8 @@ public class ConsoleMenu
                 "Bu tarihte uygun saat bulunamadı.");
         }
 
-        Console.WriteLine(
-            "\nUygun Saatler:");
+        Console.WriteLine();
+        Console.WriteLine("Uygun Saatler:");
 
         for (int i = 0;
              i < slots.Count;
@@ -432,6 +426,8 @@ public class ConsoleMenu
         DateTime selected =
             slots[slotChoice - 1];
 
+
+        // RANDEVU OLUŞTUR
 
         var appointment =
             _patientService
@@ -469,21 +465,20 @@ public class ConsoleMenu
                 "Randevu bulunamadı.");
 
             Pause();
-
             return;
         }
 
-        foreach (var a
+        foreach (var appointment
                  in appointments)
         {
             Console.WriteLine(
-                $"{a.AppointmentId} | " +
-                $"{a.StartDateTime:g} | " +
-                $"{a.Doctor.FirstName} " +
-                $"{a.Doctor.LastName} | " +
-                $"{a.HealthService.Name} | " +
-                $"{a.Status} | " +
-                $"{a.Price} TL");
+                $"{appointment.AppointmentId} | " +
+                $"{appointment.StartDateTime:g} | " +
+                $"{appointment.Doctor.FirstName} " +
+                $"{appointment.Doctor.LastName} | " +
+                $"{appointment.HealthService.Name} | " +
+                $"{appointment.Status} | " +
+                $"{appointment.Price} TL");
         }
 
         Pause();
@@ -495,23 +490,34 @@ public class ConsoleMenu
     {
         Console.Clear();
 
+        Console.WriteLine(
+            "=== RANDEVU İPTAL ===");
+
         var appointments =
             _patientService
                 .GetAppointments(
                     patientId);
 
-        foreach (var a
+        if (appointments.Count == 0)
+        {
+            Message(
+                "Randevu bulunamadı.");
+
+            return;
+        }
+
+        foreach (var appointment
                  in appointments)
         {
             Console.WriteLine(
-                $"{a.AppointmentId} | " +
-                $"{a.StartDateTime:g} | " +
-                $"{a.Status}");
+                $"{appointment.AppointmentId} | " +
+                $"{appointment.StartDateTime:g} | " +
+                $"{appointment.Status}");
         }
 
         int id =
             ReadInt(
-                "İptal edilecek ID: ");
+                "İptal edilecek randevu ID: ");
 
         if (!appointments.Any(a =>
                 a.AppointmentId == id))
@@ -539,27 +545,15 @@ public class ConsoleMenu
             Console.Clear();
 
             Console.WriteLine(
-                $"=== DOKTOR: " +
-                $"{user.FirstName} " +
-                $"{user.LastName} ===");
+                $"=== DOKTOR: {user.FirstName} {user.LastName} ===");
 
-            Console.WriteLine(
-                "1 - Randevularım");
-
-            Console.WriteLine(
-                "2 - Randevu Onayla");
-
-            Console.WriteLine(
-                "3 - Randevu Reddet");
-
-            Console.WriteLine(
-                "4 - Randevuyu Tamamla");
-
-            Console.WriteLine(
-                "5 - Çalışma Programım");
-
-            Console.WriteLine(
-                "0 - Çıkış Yap");
+            Console.WriteLine();
+            Console.WriteLine("1 - Randevularım");
+            Console.WriteLine("2 - Randevu Onayla");
+            Console.WriteLine("3 - Randevu Reddet");
+            Console.WriteLine("4 - Randevuyu Tamamla");
+            Console.WriteLine("5 - Çalışma Programım");
+            Console.WriteLine("0 - Çıkış Yap");
 
             Console.Write("\nSeçim: ");
 
@@ -571,52 +565,39 @@ public class ConsoleMenu
                 switch (choice)
                 {
                     case "1":
-
                         ShowDoctorAppointments(
                             user.UserId);
-
                         break;
 
                     case "2":
-
                         ChangeDoctorAppointment(
                             user.UserId,
                             "approve");
-
                         break;
 
                     case "3":
-
                         ChangeDoctorAppointment(
                             user.UserId,
                             "reject");
-
                         break;
 
                     case "4":
-
                         ChangeDoctorAppointment(
                             user.UserId,
                             "complete");
-
                         break;
 
                     case "5":
-
                         ShowDoctorSchedule(
                             user.UserId);
-
                         break;
 
                     case "0":
-
                         return;
 
                     default:
-
                         Message(
                             "Geçersiz seçim.");
-
                         break;
                 }
             }
@@ -638,8 +619,9 @@ public class ConsoleMenu
             "=== RANDEVULAR ===");
 
         var appointments =
-            _doctorService.GetAppointments(
-                doctorId);
+            _doctorService
+                .GetAppointments(
+                    doctorId);
 
         if (appointments.Count == 0)
         {
@@ -647,20 +629,19 @@ public class ConsoleMenu
                 "Randevu bulunamadı.");
 
             Pause();
-
             return;
         }
 
-        foreach (var a
+        foreach (var appointment
                  in appointments)
         {
             Console.WriteLine(
-                $"{a.AppointmentId} | " +
-                $"{a.StartDateTime:g} | " +
-                $"{a.Patient.FirstName} " +
-                $"{a.Patient.LastName} | " +
-                $"{a.HealthService.Name} | " +
-                $"{a.Status}");
+                $"{appointment.AppointmentId} | " +
+                $"{appointment.StartDateTime:g} | " +
+                $"{appointment.Patient.FirstName} " +
+                $"{appointment.Patient.LastName} | " +
+                $"{appointment.HealthService.Name} | " +
+                $"{appointment.Status}");
         }
 
         Pause();
@@ -674,18 +655,27 @@ public class ConsoleMenu
         Console.Clear();
 
         var appointments =
-            _doctorService.GetAppointments(
-                doctorId);
+            _doctorService
+                .GetAppointments(
+                    doctorId);
 
-        foreach (var a
+        if (appointments.Count == 0)
+        {
+            Message(
+                "Randevu bulunamadı.");
+
+            return;
+        }
+
+        foreach (var appointment
                  in appointments)
         {
             Console.WriteLine(
-                $"{a.AppointmentId} | " +
-                $"{a.StartDateTime:g} | " +
-                $"{a.Patient.FirstName} " +
-                $"{a.Patient.LastName} | " +
-                $"{a.Status}");
+                $"{appointment.AppointmentId} | " +
+                $"{appointment.StartDateTime:g} | " +
+                $"{appointment.Patient.FirstName} " +
+                $"{appointment.Patient.LastName} | " +
+                $"{appointment.Status}");
         }
 
         int id =
@@ -702,7 +692,6 @@ public class ConsoleMenu
 
                 Message(
                     "Randevu onaylandı.");
-
                 break;
 
 
@@ -715,7 +704,6 @@ public class ConsoleMenu
 
                 Message(
                     "Randevu reddedildi.");
-
                 break;
 
 
@@ -728,7 +716,6 @@ public class ConsoleMenu
 
                 Message(
                     "Randevu tamamlandı.");
-
                 break;
         }
     }
@@ -743,8 +730,18 @@ public class ConsoleMenu
             "=== ÇALIŞMA PROGRAMI ===");
 
         var schedules =
-            _doctorService.GetSchedules(
-                doctorId);
+            _doctorService
+                .GetSchedules(
+                    doctorId);
+
+        if (schedules.Count == 0)
+        {
+            Console.WriteLine(
+                "Çalışma programı bulunamadı.");
+
+            Pause();
+            return;
+        }
 
         foreach (var schedule
                  in schedules)
@@ -770,47 +767,31 @@ public class ConsoleMenu
             Console.Clear();
 
             Console.WriteLine(
-                $"=== YÖNETİCİ: " +
-                $"{user.FirstName} " +
-                $"{user.LastName} ===");
+                $"=== YÖNETİCİ: {user.FirstName} {user.LastName} ===");
 
             Console.WriteLine();
 
-            Console.WriteLine(
-                "1 - Şubeleri Listele");
+            Console.WriteLine("1 - Şubeleri Listele");
+            Console.WriteLine("2 - Şube Ekle");
+            Console.WriteLine("3 - Bölüm Ekle");
+            Console.WriteLine("4 - Hizmet Ekle");
+            Console.WriteLine("5 - Hizmeti Şubeye Ata");
 
-            Console.WriteLine(
-                "2 - Şube Ekle");
+            Console.WriteLine();
 
-            Console.WriteLine(
-                "3 - Bölüm Ekle");
+            Console.WriteLine("6 - Doktor Ekle");
+            Console.WriteLine("7 - Sağlık Personeli Ekle");
+            Console.WriteLine("8 - Doktora Hizmet Ata");
+            Console.WriteLine("9 - Doktor Çalışma Saati Ata");
+            Console.WriteLine("10 - Çalışanları Listele");
 
-            Console.WriteLine(
-                "4 - Hizmet Ekle");
+            Console.WriteLine();
 
-            Console.WriteLine(
-                "5 - Hizmeti Şubeye Ata");
+            Console.WriteLine("11 - Ekipman Ekle");
+            Console.WriteLine("12 - Ekipmanı Şubeye Ata");
 
-            Console.WriteLine(
-                "6 - Doktor Ekle");
-
-            Console.WriteLine(
-                "7 - Doktora Hizmet Ata");
-
-            Console.WriteLine(
-                "8 - Doktor Çalışma Saati Ata");
-
-            Console.WriteLine(
-                "9 - Ekipman Ekle");
-
-            Console.WriteLine(
-                "10 - Ekipmanı Şubeye Ata");
-
-            Console.WriteLine(
-                "11 - Çalışanları Listele");
-
-            Console.WriteLine(
-                "0 - Çıkış Yap");
+            Console.WriteLine();
+            Console.WriteLine("0 - Çıkış Yap");
 
             Console.Write("\nSeçim: ");
 
@@ -822,80 +803,59 @@ public class ConsoleMenu
                 switch (choice)
                 {
                     case "1":
-
                         ShowManagerBranches();
-
                         break;
 
                     case "2":
-
                         ManagerAddBranch();
-
                         break;
 
                     case "3":
-
                         ManagerAddDepartment();
-
                         break;
 
                     case "4":
-
                         ManagerAddService();
-
                         break;
 
                     case "5":
-
                         ManagerAssignService();
-
                         break;
 
                     case "6":
-
                         ManagerAddDoctor();
-
                         break;
 
                     case "7":
-
-                        ManagerAssignDoctorService();
-
+                        ManagerAddHealthStaff();
                         break;
 
                     case "8":
-
-                        ManagerAddDoctorSchedule();
-
+                        ManagerAssignDoctorService();
                         break;
 
                     case "9":
-
-                        ManagerAddEquipment();
-
+                        ManagerAddDoctorSchedule();
                         break;
 
                     case "10":
-
-                        ManagerAssignEquipment();
-
+                        ManagerShowEmployees();
                         break;
 
                     case "11":
+                        ManagerAddEquipment();
+                        break;
 
-                        ManagerShowEmployees();
-
+                    case "12":
+                        ManagerAssignEquipment();
                         break;
 
                     case "0":
-
                         return;
 
                     default:
-
                         Message(
                             "Geçersiz seçim.");
-
                         break;
                 }
             }
@@ -907,6 +867,10 @@ public class ConsoleMenu
         }
     }
 
+
+    // =================================================
+    // MANAGER - BRANCH
+    // =================================================
 
     private void ShowManagerBranches()
     {
@@ -923,7 +887,9 @@ public class ConsoleMenu
                 $"{branch.BranchId} | " +
                 $"{branch.Name} | " +
                 $"{branch.City} / " +
-                $"{branch.District}");
+                $"{branch.District} | " +
+                $"{branch.OpeningTime} - " +
+                $"{branch.ClosingTime}");
         }
 
         Pause();
@@ -934,36 +900,29 @@ public class ConsoleMenu
     {
         Console.Clear();
 
+        Console.WriteLine(
+            "=== ŞUBE EKLE ===");
+
         int hospitalId =
             ReadInt("Hospital ID: ");
 
-        Console.Write(
-            "Şube adı: ");
-
+        Console.Write("Şube adı: ");
         string name =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "İl: ");
-
+        Console.Write("İl: ");
         string city =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "İlçe: ");
-
+        Console.Write("İlçe: ");
         string district =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "Adres: ");
-
+        Console.Write("Adres: ");
         string address =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "Telefon: ");
-
+        Console.Write("Telefon: ");
         string phone =
             Console.ReadLine() ?? "";
 
@@ -975,79 +934,89 @@ public class ConsoleMenu
             ReadTime(
                 "Kapanış (HH:mm): ");
 
-        _managerService.AddBranch(
-            hospitalId,
-            name,
-            city,
-            district,
-            address,
-            phone,
-            opening,
-            closing);
+        var branch =
+            _managerService.AddBranch(
+                hospitalId,
+                name,
+                city,
+                district,
+                address,
+                phone,
+                opening,
+                closing);
 
         Message(
-            "Şube eklendi.");
+            $"Şube eklendi. ID: {branch.BranchId}");
     }
 
+
+    // =================================================
+    // MANAGER - DEPARTMENT
+    // =================================================
 
     private void ManagerAddDepartment()
     {
         Console.Clear();
+
+        Console.WriteLine(
+            "=== BÖLÜM EKLE ===");
 
         ShowBranchesSimple();
 
         int branchId =
             ReadInt("Şube ID: ");
 
-        Console.Write(
-            "Bölüm adı: ");
-
+        Console.Write("Bölüm adı: ");
         string name =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "Açıklama: ");
-
+        Console.Write("Açıklama: ");
         string description =
             Console.ReadLine() ?? "";
 
-        _managerService.AddDepartment(
-            branchId,
-            name,
-            description);
+        var department =
+            _managerService.AddDepartment(
+                branchId,
+                name,
+                description);
 
         Message(
-            "Bölüm eklendi.");
+            $"Bölüm eklendi. ID: {department.DepartmentId}");
     }
 
+
+    // =================================================
+    // MANAGER - SERVICE
+    // =================================================
 
     private void ManagerAddService()
     {
         Console.Clear();
 
-        Console.Write(
-            "Hizmet adı: ");
+        Console.WriteLine(
+            "=== HİZMET EKLE ===");
 
+        Console.Write("Hizmet adı: ");
         string name =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "Açıklama: ");
-
+        Console.Write("Açıklama: ");
         string description =
             Console.ReadLine() ?? "";
 
         int duration =
-            ReadInt(
-                "Süre (dakika): ");
+            ReadInt("Süre (dakika): ");
 
-        _managerService.AddHealthService(
-            name,
-            description,
-            duration);
+        var service =
+            _managerService
+                .AddHealthService(
+                    name,
+                    description,
+                    duration);
 
         Message(
-            "Hizmet eklendi.");
+            $"Hizmet eklendi. ID: " +
+            $"{service.HealthServiceId}");
     }
 
 
@@ -1055,14 +1024,16 @@ public class ConsoleMenu
     {
         Console.Clear();
 
+        Console.WriteLine(
+            "=== HİZMETİ ŞUBEYE ATA ===");
+
         ShowBranchesSimple();
 
         int branchId =
             ReadInt("Şube ID: ");
 
         Console.WriteLine();
-        Console.WriteLine(
-            "Hizmetler:");
+        Console.WriteLine("Hizmetler:");
 
         foreach (var service
                  in _managerService
@@ -1070,7 +1041,8 @@ public class ConsoleMenu
         {
             Console.WriteLine(
                 $"{service.HealthServiceId} | " +
-                $"{service.Name}");
+                $"{service.Name} | " +
+                $"{service.DurationMinutes} dk");
         }
 
         int serviceId =
@@ -1090,43 +1062,43 @@ public class ConsoleMenu
     }
 
 
+    // =================================================
+    // MANAGER - DOCTOR
+    // =================================================
+
     private void ManagerAddDoctor()
     {
         Console.Clear();
 
-        Console.Write(
-            "Ad: ");
+        Console.WriteLine(
+            "=== DOKTOR EKLE ===");
 
+        Console.Write("Ad: ");
         string firstName =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "Soyad: ");
-
+        Console.Write("Soyad: ");
         string lastName =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "E-posta: ");
-
+        Console.Write("E-posta: ");
         string email =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "Telefon: ");
-
+        Console.Write("Telefon: ");
         string phone =
             Console.ReadLine() ?? "";
 
-        Console.Write(
-            "Çalışan no: ");
+        Console.Write("Şifre: ");
+        string password =
+            Console.ReadLine() ?? "";
 
+        Console.Write("Çalışan No: ");
         string employeeNumber =
             Console.ReadLine() ?? "";
 
 
         ShowBranchesSimple();
-
 
         int branchId =
             ReadInt("Şube ID: ");
@@ -1136,40 +1108,40 @@ public class ConsoleMenu
         Console.WriteLine(
             "Bölümler:");
 
+        var departments =
+            _managerService
+                .GetDepartments(
+                    branchId);
+
         foreach (var department
-                 in _managerService
-                     .GetDepartments(
-                         branchId))
+                 in departments)
         {
             Console.WriteLine(
                 $"{department.DepartmentId} | " +
                 $"{department.Name}");
         }
 
-
         int departmentId =
             ReadInt("Bölüm ID: ");
 
 
-        Console.Write(
-            "Uzmanlık: ");
-
+        Console.Write("Uzmanlık: ");
         string specialization =
             Console.ReadLine() ?? "";
 
 
         var doctor =
-            _employeeService
-                .AddDoctor(
-                    firstName,
-                    lastName,
-                    email,
-                    phone,
-                    employeeNumber,
-                    DateTime.Today,
-                    branchId,
-                    departmentId,
-                    specialization);
+            _employeeService.AddDoctor(
+                firstName,
+                lastName,
+                email,
+                phone,
+                password,
+                employeeNumber,
+                DateTime.Today,
+                branchId,
+                departmentId,
+                specialization);
 
 
         Message(
@@ -1177,28 +1149,112 @@ public class ConsoleMenu
     }
 
 
+    // =================================================
+    // MANAGER - HEALTH STAFF
+    // =================================================
+
+    private void ManagerAddHealthStaff()
+    {
+        Console.Clear();
+
+        Console.WriteLine(
+            "=== SAĞLIK PERSONELİ EKLE ===");
+
+        Console.Write("Ad: ");
+        string firstName =
+            Console.ReadLine() ?? "";
+
+        Console.Write("Soyad: ");
+        string lastName =
+            Console.ReadLine() ?? "";
+
+        Console.Write("E-posta: ");
+        string email =
+            Console.ReadLine() ?? "";
+
+        Console.Write("Telefon: ");
+        string phone =
+            Console.ReadLine() ?? "";
+
+        Console.Write("Şifre: ");
+        string password =
+            Console.ReadLine() ?? "";
+
+        Console.Write("Çalışan No: ");
+        string employeeNumber =
+            Console.ReadLine() ?? "";
+
+
+        ShowBranchesSimple();
+
+        int branchId =
+            ReadInt("Şube ID: ");
+
+
+        Console.WriteLine();
+        Console.WriteLine(
+            "Bölümler:");
+
+        var departments =
+            _managerService
+                .GetDepartments(
+                    branchId);
+
+        foreach (var department
+                 in departments)
+        {
+            Console.WriteLine(
+                $"{department.DepartmentId} | " +
+                $"{department.Name}");
+        }
+
+        Console.WriteLine(
+            "0 | Bölümsüz");
+
+
+        int departmentInput =
+            ReadInt("Bölüm ID: ");
+
+        int? departmentId =
+            departmentInput == 0
+                ? null
+                : departmentInput;
+
+
+        Console.Write(
+            "Görev / Pozisyon: ");
+
+        string position =
+            Console.ReadLine() ?? "";
+
+
+        var staff =
+            _employeeService.AddHealthStaff(
+                firstName,
+                lastName,
+                email,
+                phone,
+                password,
+                employeeNumber,
+                DateTime.Today,
+                branchId,
+                departmentId,
+                position);
+
+
+        Message(
+            $"Sağlık personeli eklendi. ID: {staff.UserId}");
+    }
+
+
     private void ManagerAssignDoctorService()
     {
         Console.Clear();
 
-        var doctors =
-            _employeeService
-                .GetEmployees()
-                .OfType<Doctor>()
-                .ToList();
-
         Console.WriteLine(
-            "Doktorlar:");
+            "=== DOKTORA HİZMET ATA ===");
 
-        foreach (var doctor
-                 in doctors)
-        {
-            Console.WriteLine(
-                $"{doctor.UserId} | " +
-                $"{doctor.FirstName} " +
-                $"{doctor.LastName}");
-        }
-
+        ShowDoctorsSimple();
 
         int doctorId =
             ReadInt("Doktor ID: ");
@@ -1217,15 +1273,12 @@ public class ConsoleMenu
                 $"{service.Name}");
         }
 
-
         int serviceId =
             ReadInt("Hizmet ID: ");
-
 
         _employeeService.AssignService(
             doctorId,
             serviceId);
-
 
         Message(
             "Hizmet doktora atandı.");
@@ -1236,13 +1289,23 @@ public class ConsoleMenu
     {
         Console.Clear();
 
+        Console.WriteLine(
+            "=== DOKTOR ÇALIŞMA SAATİ ATA ===");
+
+        ShowDoctorsSimple();
+
         int doctorId =
             ReadInt("Doktor ID: ");
 
-        Console.WriteLine(
-            "0=Pazar 1=Pazartesi 2=Salı " +
-            "3=Çarşamba 4=Perşembe " +
-            "5=Cuma 6=Cumartesi");
+
+        Console.WriteLine();
+        Console.WriteLine("0 - Pazar");
+        Console.WriteLine("1 - Pazartesi");
+        Console.WriteLine("2 - Salı");
+        Console.WriteLine("3 - Çarşamba");
+        Console.WriteLine("4 - Perşembe");
+        Console.WriteLine("5 - Cuma");
+        Console.WriteLine("6 - Cumartesi");
 
         int day =
             ReadInt("Gün: ");
@@ -1254,84 +1317,30 @@ public class ConsoleMenu
                 "Geçersiz gün.");
         }
 
-
         TimeOnly start =
             ReadTime(
-                "Başlangıç: ");
+                "Başlangıç (HH:mm): ");
 
         TimeOnly end =
             ReadTime(
-                "Bitiş: ");
+                "Bitiş (HH:mm): ");
 
-
-        _employeeService.AddSchedule(
-            doctorId,
-            (DayOfWeek)day,
-            start,
-            end);
-
+        var schedule =
+            _employeeService.AddSchedule(
+                doctorId,
+                (DayOfWeek)day,
+                start,
+                end);
 
         Message(
-            "Çalışma saati eklendi.");
+            $"Çalışma saati eklendi. ID: " +
+            $"{schedule.DoctorScheduleId}");
     }
 
 
-    private void ManagerAddEquipment()
-    {
-        Console.Clear();
-
-        Console.Write(
-            "Ekipman adı: ");
-
-        string name =
-            Console.ReadLine() ?? "";
-
-        Console.Write(
-            "Açıklama: ");
-
-        string description =
-            Console.ReadLine() ?? "";
-
-
-        var equipment =
-            _managerService.AddEquipment(
-                name,
-                description);
-
-
-        Message(
-            $"Ekipman eklendi. ID: " +
-            $"{equipment.EquipmentId}");
-    }
-
-
-    private void ManagerAssignEquipment()
-    {
-        Console.Clear();
-
-        ShowBranchesSimple();
-
-        int branchId =
-            ReadInt("Şube ID: ");
-
-        int equipmentId =
-            ReadInt("Ekipman ID: ");
-
-        int quantity =
-            ReadInt("Adet: ");
-
-
-        _managerService
-            .AssignEquipmentToBranch(
-                branchId,
-                equipmentId,
-                quantity);
-
-
-        Message(
-            "Ekipman şubeye atandı.");
-    }
-
+    // =================================================
+    // MANAGER - EMPLOYEE LIST
+    // =================================================
 
     private void ManagerShowEmployees()
     {
@@ -1350,14 +1359,20 @@ public class ConsoleMenu
                     ? value
                     : 0;
 
-
         var employees =
-            _employeeService
-                .GetEmployees(
-                    branchId == 0
-                        ? null
-                        : branchId);
+            _employeeService.GetEmployees(
+                branchId == 0
+                    ? null
+                    : branchId);
 
+        if (employees.Count == 0)
+        {
+            Console.WriteLine(
+                "Çalışan bulunamadı.");
+
+            Pause();
+            return;
+        }
 
         foreach (var employee
                  in employees)
@@ -1367,19 +1382,81 @@ public class ConsoleMenu
                 $"{employee.FirstName} " +
                 $"{employee.LastName} | " +
                 $"{employee.EmployeeNumber} | " +
-                $"{employee.Branch.Name}");
+                $"{employee.Branch.Name} | " +
+                $"{employee.Department?.Name ?? "-"}");
         }
-
 
         Pause();
     }
 
 
+    // =================================================
+    // MANAGER - EQUIPMENT
+    // =================================================
+
+    private void ManagerAddEquipment()
+    {
+        Console.Clear();
+
+        Console.WriteLine(
+            "=== EKİPMAN EKLE ===");
+
+        Console.Write("Ekipman adı: ");
+        string name =
+            Console.ReadLine() ?? "";
+
+        Console.Write("Açıklama: ");
+        string description =
+            Console.ReadLine() ?? "";
+
+        var equipment =
+            _managerService.AddEquipment(
+                name,
+                description);
+
+        Message(
+            $"Ekipman eklendi. ID: " +
+            $"{equipment.EquipmentId}");
+    }
+
+
+    private void ManagerAssignEquipment()
+    {
+        Console.Clear();
+
+        Console.WriteLine(
+            "=== EKİPMANI ŞUBEYE ATA ===");
+
+        ShowBranchesSimple();
+
+        int branchId =
+            ReadInt("Şube ID: ");
+
+        int equipmentId =
+            ReadInt("Ekipman ID: ");
+
+        int quantity =
+            ReadInt("Adet: ");
+
+        _managerService
+            .AssignEquipmentToBranch(
+                branchId,
+                equipmentId,
+                quantity);
+
+        Message(
+            "Ekipman şubeye atandı.");
+    }
+
+
+    // =================================================
+    // SIMPLE LIST HELPERS
+    // =================================================
+
     private void ShowBranchesSimple()
     {
         Console.WriteLine();
-        Console.WriteLine(
-            "Şubeler:");
+        Console.WriteLine("Şubeler:");
 
         foreach (var branch
                  in _managerService
@@ -1388,6 +1465,39 @@ public class ConsoleMenu
             Console.WriteLine(
                 $"{branch.BranchId} | " +
                 $"{branch.Name}");
+        }
+    }
+
+
+    private void ShowDoctorsSimple()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Doktorlar:");
+
+        var employees =
+            _employeeService.GetEmployees();
+
+        var doctors =
+            employees
+                .OfType<Doctor>()
+                .ToList();
+
+        if (doctors.Count == 0)
+        {
+            Console.WriteLine(
+                "Kayıtlı doktor yok.");
+
+            return;
+        }
+
+        foreach (var doctor
+                 in doctors)
+        {
+            Console.WriteLine(
+                $"{doctor.UserId} | " +
+                $"{doctor.FirstName} " +
+                $"{doctor.LastName} | " +
+                $"{doctor.Specialization}");
         }
     }
 
@@ -1402,6 +1512,11 @@ public class ConsoleMenu
         Console.Clear();
 
         Console.WriteLine(
+            $"=== SAĞLIK PERSONELİ ===");
+
+        Console.WriteLine();
+
+        Console.WriteLine(
             $"Hoş geldiniz " +
             $"{user.FirstName} " +
             $"{user.LastName}.");
@@ -1409,7 +1524,7 @@ public class ConsoleMenu
         Console.WriteLine();
 
         Console.WriteLine(
-            "Sağlık personeli özel işlemleri " +
+            "Sağlık personeli için özel işlemler " +
             "henüz tanımlanmadı.");
 
         Pause();
@@ -1430,7 +1545,7 @@ public class ConsoleMenu
                 out int value))
         {
             throw new Exception(
-                "Geçerli sayı giriniz.");
+                "Geçerli bir sayı giriniz.");
         }
 
         return value;
@@ -1447,7 +1562,7 @@ public class ConsoleMenu
                 out decimal value))
         {
             throw new Exception(
-                "Geçerli sayı giriniz.");
+                "Geçerli bir sayı giriniz.");
         }
 
         return value;

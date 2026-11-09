@@ -8,6 +8,8 @@ using AltunPital.Data;
 using AltunPital.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
+using AltunPital.Security;
+
 namespace AltunPital.Services;
 
 public class EmployeeService : IEmployeeService
@@ -24,6 +26,7 @@ public class EmployeeService : IEmployeeService
         string lastName,
         string email,
         string phone,
+        string password,
         string employeeNumber,
         DateTime hireDate,
         int branchId,
@@ -38,15 +41,19 @@ public class EmployeeService : IEmployeeService
             email,
             employeeNumber);
 
+        if (string.IsNullOrWhiteSpace(password))
+            throw new Exception(
+                "Şifre boş bırakılamaz.");
+
         var doctor = new Doctor
         {
             FirstName = firstName,
             LastName = lastName,
-            Email = email,
+            Email = email.Trim().ToLowerInvariant(),
             Phone = phone,
 
-            // Gerçek authentication aşamasında değişecek.
-            PasswordHash = "NOT_IMPLEMENTED",
+            PasswordHash =
+                PasswordHasher.HashPassword(password),
 
             EmployeeNumber = employeeNumber,
             HireDate = hireDate,
@@ -69,14 +76,15 @@ public class EmployeeService : IEmployeeService
         string lastName,
         string email,
         string phone,
+        string password,
         string employeeNumber,
         DateTime hireDate,
         int branchId,
         int? departmentId,
         string position)
     {
-        if (!_db.Branches.Any(b =>
-                b.BranchId == branchId))
+        if (!_db.Branches.Any(
+            b => b.BranchId == branchId))
         {
             throw new Exception(
                 "Şube bulunamadı.");
@@ -93,14 +101,20 @@ public class EmployeeService : IEmployeeService
             email,
             employeeNumber);
 
+        if (string.IsNullOrWhiteSpace(password))
+            throw new Exception(
+                "Şifre boş bırakılamaz.");
+
         var staff = new HealthStaff
         {
             FirstName = firstName,
             LastName = lastName,
-            Email = email,
+
+            Email = email.Trim().ToLowerInvariant(),
             Phone = phone,
 
-            PasswordHash = "NOT_IMPLEMENTED",
+            PasswordHash =
+                PasswordHasher.HashPassword(password),
 
             EmployeeNumber = employeeNumber,
             HireDate = hireDate,
