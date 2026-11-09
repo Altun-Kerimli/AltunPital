@@ -4,407 +4,485 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using AltunPital.Security;
+
 namespace AltunPital.Data;
 
 public static class SeedData
 {
-    public static void Initialize(AppDbContext db)
+    public static void Initialize(
+        AppDbContext db)
     {
-        if (db.Hospitals.Any())
+        // =========================================
+        // HOSPITAL
+        // =========================================
+
+        var hospital =
+            db.Hospitals.FirstOrDefault();
+
+        if (hospital == null)
+        {
+            hospital =
+                new Hospital
+                {
+                    Name = "AltunPital",
+
+                    Description =
+                        "AltunPital Sağlık Grubu"
+                };
+
+            db.Hospitals.Add(
+                hospital);
+
+            db.SaveChanges();
+        }
+
+
+        // =========================================
+        // BRANCHES
+        // =========================================
+
+        var sakaryaBranch =
+            db.Branches.FirstOrDefault(b =>
+                b.Name ==
+                "AltunPital Sakarya");
+
+        if (sakaryaBranch == null)
+        {
+            sakaryaBranch =
+                new Branch
+                {
+                    HospitalId =
+                        hospital.HospitalId,
+
+                    Name =
+                        "AltunPital Sakarya",
+
+                    City =
+                        "Sakarya",
+
+                    District =
+                        "Serdivan",
+
+                    Address =
+                        "Serdivan, Sakarya",
+
+                    Phone =
+                        "0264 000 00 01",
+
+                    OpeningTime =
+                        new TimeOnly(8, 0),
+
+                    ClosingTime =
+                        new TimeOnly(18, 0)
+                };
+
+            db.Branches.Add(
+                sakaryaBranch);
+
+            db.SaveChanges();
+        }
+
+
+        var kocaeliBranch =
+            db.Branches.FirstOrDefault(b =>
+                b.Name ==
+                "AltunPital Kocaeli");
+
+        if (kocaeliBranch == null)
+        {
+            kocaeliBranch =
+                new Branch
+                {
+                    HospitalId =
+                        hospital.HospitalId,
+
+                    Name =
+                        "AltunPital Kocaeli",
+
+                    City =
+                        "Kocaeli",
+
+                    District =
+                        "İzmit",
+
+                    Address =
+                        "İzmit, Kocaeli",
+
+                    Phone =
+                        "0262 000 00 01",
+
+                    OpeningTime =
+                        new TimeOnly(8, 30),
+
+                    ClosingTime =
+                        new TimeOnly(19, 0)
+                };
+
+            db.Branches.Add(
+                kocaeliBranch);
+
+            db.SaveChanges();
+        }
+
+
+        // =========================================
+        // DEPARTMENTS
+        // =========================================
+
+        AddDepartmentIfMissing(
+            db,
+            sakaryaBranch.BranchId,
+            "Kardiyoloji",
+            "Kalp ve damar hastalıkları");
+
+        AddDepartmentIfMissing(
+            db,
+            sakaryaBranch.BranchId,
+            "Radyoloji",
+            "Tıbbi görüntüleme");
+
+        AddDepartmentIfMissing(
+            db,
+            kocaeliBranch.BranchId,
+            "Kardiyoloji",
+            "Kalp ve damar hastalıkları");
+
+
+        // =========================================
+        // SERVICES
+        // =========================================
+
+        var general =
+            GetOrCreateService(
+                db,
+                "Genel Muayene",
+                "Standart doktor muayenesi",
+                30);
+
+        var cardiology =
+            GetOrCreateService(
+                db,
+                "Kardiyoloji Muayenesi",
+                "Kardiyoloji uzman muayenesi",
+                30);
+
+        var mri =
+            GetOrCreateService(
+                db,
+                "MR",
+                "Manyetik rezonans görüntüleme",
+                45);
+
+
+        AddBranchServiceIfMissing(
+            db,
+            sakaryaBranch.BranchId,
+            general.HealthServiceId,
+            900);
+
+        AddBranchServiceIfMissing(
+            db,
+            sakaryaBranch.BranchId,
+            cardiology.HealthServiceId,
+            1400);
+
+        AddBranchServiceIfMissing(
+            db,
+            sakaryaBranch.BranchId,
+            mri.HealthServiceId,
+            2500);
+
+
+        AddBranchServiceIfMissing(
+            db,
+            kocaeliBranch.BranchId,
+            cardiology.HealthServiceId,
+            1550);
+
+        AddBranchServiceIfMissing(
+            db,
+            kocaeliBranch.BranchId,
+            mri.HealthServiceId,
+            2800);
+
+
+        // =========================================
+        // EQUIPMENT
+        // =========================================
+
+        var mriMachine =
+            GetOrCreateEquipment(
+                db,
+                "MR Cihazı",
+                "Manyetik rezonans görüntüleme cihazı");
+
+        var xrayMachine =
+            GetOrCreateEquipment(
+                db,
+                "Röntgen Cihazı",
+                "Dijital röntgen sistemi");
+
+
+        AddBranchEquipmentIfMissing(
+            db,
+            sakaryaBranch.BranchId,
+            mriMachine.EquipmentId,
+            2);
+
+        AddBranchEquipmentIfMissing(
+            db,
+            sakaryaBranch.BranchId,
+            xrayMachine.EquipmentId,
+            1);
+
+        AddBranchEquipmentIfMissing(
+            db,
+            kocaeliBranch.BranchId,
+            mriMachine.EquipmentId,
+            1);
+
+
+        // =========================================
+        // DEFAULT MANAGER
+        // =========================================
+
+        const string managerEmail =
+            "manager@altunpital.com";
+
+        bool managerExists =
+            db.Users.Any(u =>
+                u.Email == managerEmail);
+
+        if (!managerExists)
+        {
+            var manager =
+                new Manager
+                {
+                    FirstName =
+                        "Altun",
+
+                    LastName =
+                        "Pital",
+
+                    Email =
+                        managerEmail,
+
+                    Phone =
+                        "0500 000 00 00",
+
+                    PasswordHash =
+                        PasswordHasher
+                            .HashPassword(
+                                "asdf1234!"),
+
+                    EmployeeNumber =
+                        "ALT-MNG-001",
+
+                    HireDate =
+                        DateTime.Today,
+
+                    BranchId =
+                        sakaryaBranch.BranchId,
+
+                    DepartmentId =
+                        null
+                };
+
+
+            db.Managers.Add(
+                manager);
+
+            db.SaveChanges();
+        }
+    }
+
+
+    // =================================================
+    // HELPERS
+    // =================================================
+
+    private static void
+        AddDepartmentIfMissing(
+            AppDbContext db,
+            int branchId,
+            string name,
+            string description)
+    {
+        bool exists =
+            db.Departments.Any(d =>
+                d.BranchId ==
+                    branchId &&
+                d.Name ==
+                    name);
+
+        if (exists)
             return;
 
 
-        // --------------------
-        // HOSPITAL
-        // --------------------
+        db.Departments.Add(
+            new Department
+            {
+                BranchId =
+                    branchId,
 
-        var hospital = new Hospital
-        {
-            Name = "AltunPital",
-            Description = "AltunPital Sağlık Grubu"
-        };
+                Name =
+                    name,
 
-        db.Hospitals.Add(hospital);
+                Description =
+                    description
+            });
+
         db.SaveChanges();
+    }
 
 
-        // --------------------
-        // BRANCHES
-        // --------------------
+    private static HealthService
+        GetOrCreateService(
+            AppDbContext db,
+            string name,
+            string description,
+            int duration)
+    {
+        var service =
+            db.HealthServices
+                .FirstOrDefault(s =>
+                    s.Name == name);
 
-        var sakaryaBranch = new Branch
-        {
-            HospitalId = hospital.HospitalId,
-
-            Name = "AltunPital Sakarya",
-
-            City = "Sakarya",
-            District = "Serdivan",
-
-            Address = "Serdivan, Sakarya",
-
-            Phone = "0264 000 00 01",
-
-            OpeningTime = new TimeOnly(8, 0),
-            ClosingTime = new TimeOnly(18, 0)
-        };
+        if (service != null)
+            return service;
 
 
-        var kocaeliBranch = new Branch
-        {
-            HospitalId = hospital.HospitalId,
+        service =
+            new HealthService
+            {
+                Name =
+                    name,
 
-            Name = "AltunPital Kocaeli",
+                Description =
+                    description,
 
-            City = "Kocaeli",
-            District = "İzmit",
-
-            Address = "İzmit, Kocaeli",
-
-            Phone = "0262 000 00 01",
-
-            OpeningTime = new TimeOnly(8, 30),
-            ClosingTime = new TimeOnly(19, 0)
-        };
+                DurationMinutes =
+                    duration
+            };
 
 
-        db.Branches.AddRange(
-            sakaryaBranch,
-            kocaeliBranch
-        );
+        db.HealthServices.Add(
+            service);
 
         db.SaveChanges();
 
-
-        // --------------------
-        // DEPARTMENTS
-        // --------------------
-
-        var sakaryaCardiology = new Department
-        {
-            BranchId = sakaryaBranch.BranchId,
-
-            Name = "Kardiyoloji",
-
-            Description = "Kalp ve damar hastalıkları"
-        };
+        return service;
+    }
 
 
-        var sakaryaRadiology = new Department
-        {
-            BranchId = sakaryaBranch.BranchId,
+    private static void
+        AddBranchServiceIfMissing(
+            AppDbContext db,
+            int branchId,
+            int serviceId,
+            decimal price)
+    {
+        bool exists =
+            db.BranchServices.Any(bs =>
+                bs.BranchId ==
+                    branchId &&
+                bs.HealthServiceId ==
+                    serviceId);
 
-            Name = "Radyoloji",
-
-            Description = "Tıbbi görüntüleme"
-        };
-
-
-        var kocaeliCardiology = new Department
-        {
-            BranchId = kocaeliBranch.BranchId,
-
-            Name = "Kardiyoloji",
-
-            Description = "Kalp ve damar hastalıkları"
-        };
+        if (exists)
+            return;
 
 
-        db.Departments.AddRange(
-            sakaryaCardiology,
-            sakaryaRadiology,
-            kocaeliCardiology
-        );
-
-        db.SaveChanges();
-
-
-        // --------------------
-        // SERVICES
-        // --------------------
-
-        var generalExamination = new HealthService
-        {
-            Name = "Genel Muayene",
-
-            Description = "Standart doktor muayenesi",
-
-            DurationMinutes = 30
-        };
-
-
-        var cardiologyExamination = new HealthService
-        {
-            Name = "Kardiyoloji Muayenesi",
-
-            Description = "Kardiyoloji uzmanı muayenesi",
-
-            DurationMinutes = 30
-        };
-
-
-        var mri = new HealthService
-        {
-            Name = "MR",
-
-            Description = "Manyetik rezonans görüntüleme",
-
-            DurationMinutes = 45
-        };
-
-
-        db.HealthServices.AddRange(
-            generalExamination,
-            cardiologyExamination,
-            mri
-        );
-
-        db.SaveChanges();
-
-
-        // --------------------
-        // BRANCH SERVICE PRICES
-        // --------------------
-
-        db.BranchServices.AddRange(
-
+        db.BranchServices.Add(
             new BranchService
             {
-                BranchId = sakaryaBranch.BranchId,
+                BranchId =
+                    branchId,
 
                 HealthServiceId =
-                    generalExamination.HealthServiceId,
+                    serviceId,
 
-                Price = 900,
+                Price =
+                    price,
 
-                IsAvailable = true
-            },
+                IsAvailable =
+                    true
+            });
 
-            new BranchService
+
+        db.SaveChanges();
+    }
+
+
+    private static Equipment
+        GetOrCreateEquipment(
+            AppDbContext db,
+            string name,
+            string description)
+    {
+        var equipment =
+            db.Equipment
+                .FirstOrDefault(e =>
+                    e.Name == name);
+
+        if (equipment != null)
+            return equipment;
+
+
+        equipment =
+            new Equipment
             {
-                BranchId = sakaryaBranch.BranchId,
+                Name =
+                    name,
 
-                HealthServiceId =
-                    cardiologyExamination.HealthServiceId,
-
-                Price = 1400,
-
-                IsAvailable = true
-            },
-
-            new BranchService
-            {
-                BranchId = sakaryaBranch.BranchId,
-
-                HealthServiceId = mri.HealthServiceId,
-
-                Price = 2500,
-
-                IsAvailable = true
-            },
-
-            new BranchService
-            {
-                BranchId = kocaeliBranch.BranchId,
-
-                HealthServiceId =
-                    cardiologyExamination.HealthServiceId,
-
-                Price = 1550,
-
-                IsAvailable = true
-            },
-
-            new BranchService
-            {
-                BranchId = kocaeliBranch.BranchId,
-
-                HealthServiceId = mri.HealthServiceId,
-
-                Price = 2800,
-
-                IsAvailable = true
-            }
-        );
+                Description =
+                    description
+            };
 
 
-        // --------------------
-        // EQUIPMENT
-        // --------------------
-
-        var mriMachine = new Equipment
-        {
-            Name = "MR Cihazı",
-
-            Description =
-                "Manyetik rezonans görüntüleme cihazı"
-        };
-
-
-        var xrayMachine = new Equipment
-        {
-            Name = "Röntgen Cihazı",
-
-            Description =
-                "Dijital röntgen sistemi"
-        };
-
-
-        db.Equipment.AddRange(
-            mriMachine,
-            xrayMachine
-        );
+        db.Equipment.Add(
+            equipment);
 
         db.SaveChanges();
 
+        return equipment;
+    }
 
-        db.BranchEquipment.AddRange(
 
+    private static void
+        AddBranchEquipmentIfMissing(
+            AppDbContext db,
+            int branchId,
+            int equipmentId,
+            int quantity)
+    {
+        bool exists =
+            db.BranchEquipment.Any(be =>
+                be.BranchId ==
+                    branchId &&
+                be.EquipmentId ==
+                    equipmentId);
+
+        if (exists)
+            return;
+
+
+        db.BranchEquipment.Add(
             new BranchEquipment
             {
-                BranchId = sakaryaBranch.BranchId,
+                BranchId =
+                    branchId,
 
-                EquipmentId = mriMachine.EquipmentId,
+                EquipmentId =
+                    equipmentId,
 
-                Quantity = 2,
+                Quantity =
+                    quantity,
 
-                IsOperational = true
-            },
-
-            new BranchEquipment
-            {
-                BranchId = sakaryaBranch.BranchId,
-
-                EquipmentId = xrayMachine.EquipmentId,
-
-                Quantity = 1,
-
-                IsOperational = true
-            },
-
-            new BranchEquipment
-            {
-                BranchId = kocaeliBranch.BranchId,
-
-                EquipmentId = mriMachine.EquipmentId,
-
-                Quantity = 1,
-
-                IsOperational = true
-            }
-        );
-
-
-        // --------------------
-        // DOCTOR
-        // --------------------
-
-        var doctor = new Doctor
-        {
-            FirstName = "Ahmet",
-
-            LastName = "Yılmaz",
-
-            Email = "ahmet.yilmaz@altunpital.local",
-
-            Phone = "0500 000 00 01",
-
-            PasswordHash = "NOT_IMPLEMENTED",
-
-            EmployeeNumber = "ALT-DOC-001",
-
-            HireDate = new DateTime(2025, 1, 10),
-
-            BranchId = sakaryaBranch.BranchId,
-
-            DepartmentId =
-                sakaryaCardiology.DepartmentId,
-
-            Specialization = "Kardiyoloji"
-        };
-
-
-        db.Doctors.Add(doctor);
-
-
-        // --------------------
-        // PATIENT
-        // --------------------
-
-        var patient = new Patient
-        {
-            FirstName = "Ali",
-
-            LastName = "Demir",
-
-            Email = "ali@example.com",
-
-            Phone = "0555 000 00 01",
-
-            PasswordHash = "NOT_IMPLEMENTED"
-        };
-
-
-        db.Patients.Add(patient);
-
-        db.SaveChanges();
-
-
-        // --------------------
-        // DOCTOR SERVICES
-        // --------------------
-
-        db.DoctorServices.Add(
-
-            new DoctorService
-            {
-                DoctorId = doctor.UserId,
-
-                HealthServiceId =
-                    cardiologyExamination.HealthServiceId
-            }
-        );
-
-
-        // --------------------
-        // SCHEDULE
-        // --------------------
-
-        db.DoctorSchedules.AddRange(
-
-            new DoctorSchedule
-            {
-                DoctorId = doctor.UserId,
-
-                DayOfWeek = DayOfWeek.Monday,
-
-                StartTime = new TimeOnly(9, 0),
-
-                EndTime = new TimeOnly(17, 0)
-            },
-
-            new DoctorSchedule
-            {
-                DoctorId = doctor.UserId,
-
-                DayOfWeek = DayOfWeek.Tuesday,
-
-                StartTime = new TimeOnly(9, 0),
-
-                EndTime = new TimeOnly(17, 0)
-            },
-
-            new DoctorSchedule
-            {
-                DoctorId = doctor.UserId,
-
-                DayOfWeek = DayOfWeek.Wednesday,
-
-                StartTime = new TimeOnly(9, 0),
-
-                EndTime = new TimeOnly(17, 0)
-            }
-        );
+                IsOperational =
+                    true
+            });
 
 
         db.SaveChanges();

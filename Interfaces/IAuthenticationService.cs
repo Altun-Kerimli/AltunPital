@@ -4,9 +4,22 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AltunPital.Interfaces
+using AltunPital.Data;
+
+namespace AltunPital.Interfaces;
+
+public interface IAuthenticationService
 {
-    internal class IAuthenticationService
-    {
-    }
+    Patient RegisterPatient(
+        string firstName,
+        string lastName,
+        string email,
+        string phone,
+        string password);
+
+    User Login(
+        string email,
+        string password);
+
+    string GetRole(User user);
 }
