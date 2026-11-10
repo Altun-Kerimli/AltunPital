@@ -25,9 +25,12 @@ public abstract class DesktopShellForm : Form
     protected readonly Panel ContentPanel =
         new();
 
-    private readonly Label
-        pageTitle =
-            new();
+
+    private readonly Label pageTitle =
+        new();
+
+    private readonly Label sidebarUserName =
+        new();
 
 
     protected DesktopShellForm(
@@ -41,6 +44,7 @@ public abstract class DesktopShellForm : Form
         AccountService =
             accountService;
 
+
         Text =
             $"AltunPital - {roleName}";
 
@@ -49,8 +53,8 @@ public abstract class DesktopShellForm : Form
 
         MinimumSize =
             new Size(
-                1100,
-                700);
+                1200,
+                750);
 
         StartPosition =
             FormStartPosition.CenterScreen;
@@ -64,21 +68,72 @@ public abstract class DesktopShellForm : Form
                 10);
 
 
-        BuildSidebar(
+        BuildLayout(
             roleName);
-
-        BuildContent();
     }
 
 
-    private void BuildSidebar(
+    private void BuildLayout(
         string roleName)
     {
-        Sidebar.Dock =
-            DockStyle.Left;
+        var root =
+            new TableLayoutPanel
+            {
+                Dock =
+                    DockStyle.Fill,
 
-        Sidebar.Width =
-            245;
+                ColumnCount =
+                    2,
+
+                RowCount =
+                    2,
+
+                Margin =
+                    Padding.Empty,
+
+                Padding =
+                    Padding.Empty
+            };
+
+
+        root.ColumnStyles.Add(
+            new ColumnStyle(
+                SizeType.Absolute,
+                245));
+
+        root.ColumnStyles.Add(
+            new ColumnStyle(
+                SizeType.Percent,
+                100));
+
+
+        root.RowStyles.Add(
+            new RowStyle(
+                SizeType.Absolute,
+                85));
+
+        root.RowStyles.Add(
+            new RowStyle(
+                SizeType.Percent,
+                100));
+
+
+        // -----------------------------------------
+        // SIDEBAR
+        // -----------------------------------------
+
+        Sidebar.Dock =
+            DockStyle.Fill;
+
+        Sidebar.Margin =
+            Padding.Empty;
+
+        Sidebar.Padding =
+            new Padding(
+                24,
+                26,
+                24,
+                20);
 
         Sidebar.BackColor =
             UiTheme.PrimaryDark;
@@ -103,10 +158,10 @@ public abstract class DesktopShellForm : Form
                     true,
 
                 Left =
-                    28,
+                    24,
 
                 Top =
-                    28
+                    30
             };
 
 
@@ -128,38 +183,34 @@ public abstract class DesktopShellForm : Form
                     true,
 
                 Left =
-                    30,
+                    24,
 
                 Top =
                     68
             };
 
 
-        var userName =
-            new Label
-            {
-                Text =
-                    $"{CurrentUser.FirstName} " +
-                    $"{CurrentUser.LastName}",
+        sidebarUserName.Text =
+            $"{CurrentUser.FirstName} " +
+            $"{CurrentUser.LastName}";
 
-                ForeColor =
-                    Color.White,
+        sidebarUserName.ForeColor =
+            Color.White;
 
-                Font =
-                    new Font(
-                        "Segoe UI",
-                        11,
-                        FontStyle.Bold),
+        sidebarUserName.Font =
+            new Font(
+                "Segoe UI",
+                11,
+                FontStyle.Bold);
 
-                AutoSize =
-                    true,
+        sidebarUserName.AutoSize =
+            true;
 
-                Left =
-                    30,
+        sidebarUserName.Left =
+            24;
 
-                Top =
-                    95
-            };
+        sidebarUserName.Top =
+            95;
 
 
         Sidebar.Controls.Add(
@@ -169,27 +220,41 @@ public abstract class DesktopShellForm : Form
             role);
 
         Sidebar.Controls.Add(
-            userName);
+            sidebarUserName);
 
 
-        Controls.Add(
-            Sidebar);
-    }
+        root.Controls.Add(
+            Sidebar,
+            0,
+            0);
+
+        root.SetRowSpan(
+            Sidebar,
+            2);
 
 
-    private void BuildContent()
-    {
+        // -----------------------------------------
+        // HEADER
+        // -----------------------------------------
+
         var header =
             new Panel
             {
                 Dock =
-                    DockStyle.Top,
+                    DockStyle.Fill,
 
-                Height =
-                    85,
+                Margin =
+                    Padding.Empty,
 
                 BackColor =
-                    Color.White
+                    Color.White,
+
+                Padding =
+                    new Padding(
+                        32,
+                        0,
+                        32,
+                        0)
             };
 
 
@@ -202,7 +267,7 @@ public abstract class DesktopShellForm : Form
         pageTitle.Font =
             new Font(
                 "Segoe UI",
-                22,
+                21,
                 FontStyle.Bold);
 
         pageTitle.ForeColor =
@@ -212,28 +277,48 @@ public abstract class DesktopShellForm : Form
             32;
 
         pageTitle.Top =
-            25;
+            26;
 
 
         header.Controls.Add(
             pageTitle);
 
 
+        root.Controls.Add(
+            header,
+            1,
+            0);
+
+
+        // -----------------------------------------
+        // CONTENT
+        // -----------------------------------------
+
         ContentPanel.Dock =
             DockStyle.Fill;
+
+        ContentPanel.Margin =
+            Padding.Empty;
+
+        ContentPanel.Padding =
+            new Padding(
+                32,
+                30,
+                32,
+                30);
 
         ContentPanel.BackColor =
             UiTheme.Background;
 
-        ContentPanel.Padding =
-            new Padding(30);
+
+        root.Controls.Add(
+            ContentPanel,
+            1,
+            1);
 
 
         Controls.Add(
-            ContentPanel);
-
-        Controls.Add(
-            header);
+            root);
     }
 
 
@@ -252,21 +337,16 @@ public abstract class DesktopShellForm : Form
                     195,
 
                 Height =
-                    44,
+                    42,
 
                 Left =
-                    25,
+                    24,
 
                 Top =
                     top,
 
                 FlatStyle =
                     FlatStyle.Flat,
-
-                FlatAppearance =
-                {
-                    BorderSize = 0
-                },
 
                 BackColor =
                     UiTheme.PrimaryDark,
@@ -279,13 +359,33 @@ public abstract class DesktopShellForm : Form
 
                 Padding =
                     new Padding(
-                        10,
+                        8,
                         0,
                         0,
                         0),
 
                 Cursor =
                     Cursors.Hand
+            };
+
+
+        button.FlatAppearance.BorderSize =
+            0;
+
+
+        button.MouseEnter +=
+            (_, _) =>
+            {
+                button.BackColor =
+                    UiTheme.Primary;
+            };
+
+
+        button.MouseLeave +=
+            (_, _) =>
+            {
+                button.BackColor =
+                    UiTheme.PrimaryDark;
             };
 
 
@@ -313,13 +413,13 @@ public abstract class DesktopShellForm : Form
                     195,
 
                 Height =
-                    44,
+                    42,
 
                 Left =
-                    25,
+                    24,
 
                 Top =
-                    600,
+                    650,
 
                 Anchor =
                     AnchorStyles.Left |
@@ -327,11 +427,6 @@ public abstract class DesktopShellForm : Form
 
                 FlatStyle =
                     FlatStyle.Flat,
-
-                FlatAppearance =
-                {
-                    BorderSize = 1
-                },
 
                 BackColor =
                     UiTheme.PrimaryDark,
@@ -342,6 +437,13 @@ public abstract class DesktopShellForm : Form
                 Cursor =
                     Cursors.Hand
             };
+
+
+        button.FlatAppearance.BorderColor =
+            Color.FromArgb(
+                220,
+                230,
+                235);
 
 
         button.Click +=
@@ -376,11 +478,35 @@ public abstract class DesktopShellForm : Form
 
         ContentPanel.Controls.Clear();
 
+
+        var wrapper =
+            new Panel
+            {
+                Dock =
+                    DockStyle.Fill,
+
+                BackColor =
+                    UiTheme.Background,
+
+                Padding =
+                    new Padding(
+                        12)
+            };
+
+
         control.Dock =
             DockStyle.Fill;
 
-        ContentPanel.Controls.Add(
+        control.Margin =
+            new Padding(
+                8);
+
+
+        wrapper.Controls.Add(
             control);
+
+        ContentPanel.Controls.Add(
+            wrapper);
     }
 
 
@@ -391,7 +517,32 @@ public abstract class DesktopShellForm : Form
                 CurrentUser,
                 AccountService);
 
-        form.ShowDialog(this);
+
+        form.ShowDialog(
+            this);
+
+
+        var refreshed =
+            AccountService.GetUser(
+                CurrentUser.UserId);
+
+
+        CurrentUser.FirstName =
+            refreshed.FirstName;
+
+        CurrentUser.LastName =
+            refreshed.LastName;
+
+        CurrentUser.Email =
+            refreshed.Email;
+
+        CurrentUser.Phone =
+            refreshed.Phone;
+
+
+        sidebarUserName.Text =
+            $"{CurrentUser.FirstName} " +
+            $"{CurrentUser.LastName}";
     }
 
 

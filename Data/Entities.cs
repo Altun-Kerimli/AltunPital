@@ -29,6 +29,7 @@ public abstract class User
 
 public class Patient : User
 {
+    public string City { get; set; } = "";
     public List<Appointment> Appointments { get; set; } = new();
 }
 

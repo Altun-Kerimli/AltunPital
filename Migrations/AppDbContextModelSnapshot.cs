@@ -335,6 +335,10 @@ namespace AltunPital.Migrations
                 {
                     b.HasBaseType("AltunPital.Data.User");
 
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.ToTable("Patients", (string)null);
                 });
 

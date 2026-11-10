@@ -28,48 +28,67 @@ public class AuthenticationService
         string phone,
         string password)
     {
+        return RegisterPatient(
+            firstName,
+            lastName,
+            email,
+            phone,
+            "",
+            password);
+    }
+
+
+    public Patient RegisterPatient(
+        string firstName,
+        string lastName,
+        string email,
+        string phone,
+        string city,
+        string password)
+    {
+        firstName = firstName.Trim();
+        lastName = lastName.Trim();
+        email = email.Trim().ToLowerInvariant();
+        phone = phone.Trim();
+        city = city.Trim();
+
         if (string.IsNullOrWhiteSpace(firstName))
-            throw new Exception(
-                "Ad boş bırakılamaz.");
+            throw new Exception("Ad boş bırakılamaz.");
 
         if (string.IsNullOrWhiteSpace(lastName))
-            throw new Exception(
-                "Soyad boş bırakılamaz.");
+            throw new Exception("Soyad boş bırakılamaz.");
 
         if (string.IsNullOrWhiteSpace(email))
-            throw new Exception(
-                "E-posta boş bırakılamaz.");
+            throw new Exception("E-posta boş bırakılamaz.");
 
         if (string.IsNullOrWhiteSpace(password))
-            throw new Exception(
-                "Şifre boş bırakılamaz.");
+            throw new Exception("Şifre boş bırakılamaz.");
 
         if (password.Length < 4)
             throw new Exception(
                 "Şifre en az 4 karakter olmalıdır.");
 
-        email = email.Trim().ToLowerInvariant();
-
         bool exists =
             _db.Users.Any(u =>
-                u.Email.ToLower() == email);
+                u.Email == email);
 
         if (exists)
             throw new Exception(
-                "Bu e-posta zaten kullanılıyor.");
+                "Bu e-posta adresi zaten kayıtlı.");
 
-        var patient = new Patient
-        {
-            FirstName = firstName.Trim(),
-            LastName = lastName.Trim(),
+        var patient =
+            new Patient
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                Phone = phone,
+                City = city,
 
-            Email = email,
-            Phone = phone.Trim(),
-
-            PasswordHash =
-                PasswordHasher
-                    .HashPassword(password)
-        };
+                PasswordHash =
+                    PasswordHasher.HashPassword(
+                        password)
+            };
 
         _db.Patients.Add(patient);
         _db.SaveChanges();

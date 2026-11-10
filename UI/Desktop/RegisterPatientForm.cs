@@ -31,6 +31,9 @@ public class RegisterPatientForm : Form
     private readonly TextBox txtPhone =
         new();
 
+    private readonly ComboBox cmbCity =
+        new();
+
     private readonly TextBox txtPassword =
         new();
 
@@ -48,16 +51,25 @@ public class RegisterPatientForm : Form
     private void InitializeUi()
     {
         Text =
-            "Yeni Hasta Kaydı";
+            "AltunPital - Yeni Hasta Kaydı";
 
         Width =
-            500;
+            520;
 
         Height =
-            610;
+            680;
 
         StartPosition =
             FormStartPosition.CenterParent;
+
+        FormBorderStyle =
+            FormBorderStyle.FixedDialog;
+
+        MaximizeBox =
+            false;
+
+        MinimizeBox =
+            false;
 
         BackColor =
             UiTheme.Background;
@@ -70,19 +82,32 @@ public class RegisterPatientForm : Form
 
         var title =
             UiTheme.CreateTitle(
-                "Hasta Kaydı");
+                "Yeni Hasta Kaydı");
 
         title.Location =
             new Point(
                 45,
-                35);
+                30);
 
         Controls.Add(
             title);
 
 
+        var description =
+            UiTheme.CreateSubtitle(
+                "Randevu sistemini kullanmak için bilgilerinizi giriniz.");
+
+        description.Location =
+            new Point(
+                47,
+                72);
+
+        Controls.Add(
+            description);
+
+
         int y =
-            105;
+            120;
 
 
         AddField(
@@ -105,11 +130,57 @@ public class RegisterPatientForm : Form
             txtPhone,
             ref y);
 
+
+        var cityLabel =
+            new Label
+            {
+                Text = "Şehir",
+                AutoSize = true,
+                Left = 45,
+                Top = y
+            };
+
+        cmbCity.Left =
+            45;
+
+        cmbCity.Top =
+            y + 25;
+
+        cmbCity.Width =
+            400;
+
+        cmbCity.DropDownStyle =
+            ComboBoxStyle.DropDownList;
+
+        cmbCity.Items.AddRange(
+            new object[]
+            {
+                "Sakarya",
+                "İstanbul",
+                "Kocaeli",
+                "Ankara",
+                "Bursa"
+            });
+
+        cmbCity.SelectedIndex =
+            0;
+
+
+        Controls.Add(
+            cityLabel);
+
+        Controls.Add(
+            cmbCity);
+
+
+        y +=
+            75;
+
+
         AddField(
             "Şifre",
             txtPassword,
             ref y);
-
 
         txtPassword.UseSystemPasswordChar =
             true;
@@ -118,12 +189,13 @@ public class RegisterPatientForm : Form
         var saveButton =
             UiTheme.CreateButton(
                 "Kaydı Oluştur",
-                380);
+                400);
 
-        saveButton.Location =
-            new Point(
-                45,
-                y + 15);
+        saveButton.Left =
+            45;
+
+        saveButton.Top =
+            y + 10;
 
         saveButton.Click +=
             SaveButton_Click;
@@ -148,24 +220,26 @@ public class RegisterPatientForm : Form
                 AutoSize =
                     true,
 
-                Location =
-                    new Point(
-                        45,
-                        y)
+                Left =
+                    45,
+
+                Top =
+                    y
             };
+
+
+        textBox.Left =
+            45;
+
+        textBox.Top =
+            y + 25;
+
+        textBox.Width =
+            400;
+
 
         Controls.Add(
             label);
-
-
-        textBox.Location =
-            new Point(
-                45,
-                y + 25);
-
-        textBox.Width =
-            380;
-
 
         Controls.Add(
             textBox);
@@ -182,6 +256,11 @@ public class RegisterPatientForm : Form
     {
         try
         {
+            string city =
+                cmbCity.SelectedItem?.ToString()
+                ?? "";
+
+
             var patient =
                 _authentication
                     .RegisterPatient(
@@ -189,13 +268,14 @@ public class RegisterPatientForm : Form
                         txtLastName.Text,
                         txtEmail.Text,
                         txtPhone.Text,
+                        city,
                         txtPassword.Text);
 
 
             MessageBox.Show(
-                $"Hasta kaydı oluşturuldu.\n\n" +
+                "Hasta kaydı başarıyla oluşturuldu.\n\n" +
                 $"Hasta ID: {patient.UserId}",
-                "Başarılı",
+                "Kayıt Başarılı",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
 

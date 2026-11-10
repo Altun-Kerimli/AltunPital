@@ -7,9 +7,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
-using Font = System.Drawing.Font;
 using Label = System.Windows.Forms.Label;
+using Font = System.Drawing.Font;
 
 namespace AltunPital.UI.Desktop;
 
@@ -18,6 +19,7 @@ public class PatientForm :
 {
     private readonly IPatientService
         _patientService;
+
 
     private readonly DataGridView
         appointmentsGrid =
@@ -64,10 +66,32 @@ public class PatientForm :
     }
 
 
+    private Patient GetPatient()
+    {
+        return AccountService
+            .GetUser(
+                CurrentUser.UserId)
+            as Patient
+            ?? throw new Exception(
+                "Hasta bilgileri bulunamadı.");
+    }
+
+
     private void ShowHome()
     {
+        var patient =
+            GetPatient();
+
+
         var panel =
-            new Panel();
+            new Panel
+            {
+                BackColor =
+                    Color.White,
+
+                Padding =
+                    new Padding(30)
+            };
 
 
         var title =
@@ -78,42 +102,66 @@ public class PatientForm :
                     $"{CurrentUser.FirstName} " +
                     $"{CurrentUser.LastName}",
 
+                AutoSize =
+                    true,
+
                 Font =
                     new Font(
                         "Segoe UI",
                         22,
                         FontStyle.Bold),
 
+                Left =
+                    30,
+
+                Top =
+                    30
+            };
+
+
+        var city =
+            new Label
+            {
+                Text =
+                    $"Şehriniz: " +
+                    $"{patient.City}",
+
+                AutoSize =
+                    true,
+
+                ForeColor =
+                    UiTheme.Primary,
+
+                Font =
+                    new Font(
+                        "Segoe UI",
+                        11,
+                        FontStyle.Bold),
+
+                Left =
+                    30,
+
+                Top =
+                    90
+            };
+
+
+        var description =
+            new Label
+            {
+                Text =
+                    "Yeni randevu oluşturabilir, " +
+                    "randevularınızı takip edebilir ve " +
+                    "hesap bilgilerinizi yönetebilirsiniz.",
+
                 AutoSize =
                     true,
 
                 Left =
-                    20,
+                    30,
 
                 Top =
-                    25
-            };
-
-
-        var info =
-            new Label
-            {
-                Text =
-                    "AltunPital üzerinden yeni randevu oluşturabilir, " +
-                    "mevcut randevularınızı görüntüleyebilir ve " +
-                    "profil bilgilerinizi yönetebilirsiniz.",
-
-                Width =
-                    750,
-
-                Height =
-                    80,
-
-                Left =
-                    20,
-
-                Top =
-                    90
+                    130
             };
 
 
@@ -121,7 +169,10 @@ public class PatientForm :
             title);
 
         panel.Controls.Add(
-            info);
+            city);
+
+        panel.Controls.Add(
+            description);
 
 
         ShowPage(
@@ -132,25 +183,52 @@ public class PatientForm :
 
     private void ShowCreateAppointment()
     {
+        var patient =
+            GetPatient();
+
+
         var panel =
             new Panel
             {
                 AutoScroll =
-                    true
+                    true,
+
+                BackColor =
+                    Color.White,
+
+                Padding =
+                    new Padding(25)
             };
 
 
         var cbBranch =
-            new ComboBox();
+            new ComboBox
+            {
+                DropDownStyle =
+                    ComboBoxStyle.DropDownList
+            };
 
         var cbDepartment =
-            new ComboBox();
+            new ComboBox
+            {
+                DropDownStyle =
+                    ComboBoxStyle.DropDownList
+            };
 
         var cbDoctor =
-            new ComboBox();
+            new ComboBox
+            {
+                DropDownStyle =
+                    ComboBoxStyle.DropDownList
+            };
 
         var cbService =
-            new ComboBox();
+            new ComboBox
+            {
+                DropDownStyle =
+                    ComboBoxStyle.DropDownList
+            };
+
 
         var datePicker =
             new DateTimePicker
@@ -162,12 +240,43 @@ public class PatientForm :
                     DateTime.Today
             };
 
+
         var slots =
             new ListBox();
 
 
         int y =
-            20;
+            25;
+
+
+        var cityInfo =
+            new Label
+            {
+                Text =
+                    string.IsNullOrWhiteSpace(
+                        patient.City)
+                        ? "Tüm şubeler gösteriliyor."
+                        : $"{patient.City} şubeleri listenin başında gösteriliyor.",
+
+                ForeColor =
+                    UiTheme.Primary,
+
+                AutoSize =
+                    true,
+
+                Left =
+                    25,
+
+                Top =
+                    y
+            };
+
+
+        panel.Controls.Add(
+            cityInfo);
+
+        y +=
+            45;
 
 
         AddField(
@@ -208,7 +317,7 @@ public class PatientForm :
                     "Uygun Saatler",
 
                 Left =
-                    20,
+                    25,
 
                 Top =
                     y,
@@ -219,16 +328,16 @@ public class PatientForm :
 
 
         slots.Left =
-            20;
+            25;
 
         slots.Top =
-            y + 25;
+            y + 28;
 
         slots.Width =
-            350;
+            360;
 
         slots.Height =
-            160;
+            180;
 
 
         panel.Controls.Add(
@@ -241,30 +350,38 @@ public class PatientForm :
         var loadSlots =
             UiTheme.CreateButton(
                 "Uygun Saatleri Göster",
-                220);
+                230);
 
         loadSlots.Left =
-            400;
+            420;
 
         loadSlots.Top =
-            y + 25;
+            y + 28;
 
 
         var create =
             UiTheme.CreateButton(
                 "Randevu Oluştur",
-                220);
+                230);
 
         create.Left =
-            400;
+            420;
 
         create.Top =
-            y + 80;
+            y + 85;
+
+
+        panel.Controls.Add(
+            loadSlots);
+
+        panel.Controls.Add(
+            create);
 
 
         var branches =
             _patientService
-                .GetBranches();
+                .GetBranches(
+                    patient.City);
 
 
         cbBranch.DataSource =
@@ -278,19 +395,13 @@ public class PatientForm :
         {
             if (cbBranch.SelectedItem
                 is not Branch branch)
-            {
                 return;
-            }
-
-
-            var departments =
-                _patientService
-                    .GetDepartments(
-                        branch.BranchId);
 
 
             cbDepartment.DataSource =
-                departments;
+                _patientService
+                    .GetDepartments(
+                        branch.BranchId);
 
             cbDepartment.DisplayMember =
                 nameof(Department.Name);
@@ -304,19 +415,18 @@ public class PatientForm :
                 cbDepartment.SelectedItem
                     is not Department department)
             {
+                cbDoctor.DataSource =
+                    null;
+
                 return;
             }
 
 
-            var doctors =
+            cbDoctor.DataSource =
                 _patientService
                     .GetDoctors(
                         branch.BranchId,
                         department.DepartmentId);
-
-
-            cbDoctor.DataSource =
-                doctors;
 
             cbDoctor.DisplayMember =
                 nameof(Doctor.LastName);
@@ -330,19 +440,18 @@ public class PatientForm :
                 cbDoctor.SelectedItem
                     is not Doctor doctor)
             {
+                cbService.DataSource =
+                    null;
+
                 return;
             }
 
 
-            var services =
+            cbService.DataSource =
                 _patientService
                     .GetServices(
                         branch.BranchId,
                         doctor.UserId);
-
-
-            cbService.DataSource =
-                services;
 
             cbService.DisplayMember =
                 nameof(HealthService.Name);
@@ -390,17 +499,13 @@ public class PatientForm :
                     }
 
 
-                    DateOnly date =
-                        DateOnly.FromDateTime(
-                            datePicker.Value);
-
-
                     availableSlots =
                         _patientService
                             .GetAvailableSlots(
                                 doctor.UserId,
                                 service.HealthServiceId,
-                                date);
+                                DateOnly.FromDateTime(
+                                    datePicker.Value));
 
 
                     slots.Items.Clear();
@@ -420,7 +525,9 @@ public class PatientForm :
                     {
                         MessageBox.Show(
                             "Bu tarihte uygun saat bulunamadı.",
-                            "Bilgi");
+                            "Bilgi",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
                     }
                 }
                 catch (Exception ex)
@@ -443,7 +550,7 @@ public class PatientForm :
                             is not HealthService service)
                     {
                         throw new Exception(
-                            "Tüm alanları seçiniz.");
+                            "Şube, doktor ve hizmet seçiniz.");
                     }
 
 
@@ -471,7 +578,7 @@ public class PatientForm :
 
 
                     ShowSuccess(
-                        $"Randevu oluşturuldu.\n" +
+                        "Randevu başarıyla oluşturuldu.\n\n" +
                         $"Randevu ID: {appointment.AppointmentId}");
 
 
@@ -482,13 +589,6 @@ public class PatientForm :
                     ShowError(ex);
                 }
             };
-
-
-        panel.Controls.Add(
-            loadSlots);
-
-        panel.Controls.Add(
-            create);
 
 
         LoadDepartments();
@@ -505,11 +605,14 @@ public class PatientForm :
     private void ShowAppointments()
     {
         var panel =
-            new Panel();
+            new Panel
+            {
+                BackColor =
+                    Color.White,
 
-
-        appointmentsGrid.Dock =
-            DockStyle.Fill;
+                Padding =
+                    new Padding(15)
+            };
 
 
         var footer =
@@ -519,20 +622,21 @@ public class PatientForm :
                     DockStyle.Bottom,
 
                 Height =
-                    70
+                    70,
+
+                Padding =
+                    new Padding(
+                        5,
+                        10,
+                        5,
+                        5)
             };
 
 
         var cancel =
             UiTheme.CreateButton(
                 "Seçili Randevuyu İptal Et",
-                240);
-
-        cancel.Left =
-            10;
-
-        cancel.Top =
-            12;
+                250);
 
 
         cancel.Click +=
@@ -557,6 +661,21 @@ public class PatientForm :
                                 .Value);
 
 
+                    DialogResult confirm =
+                        MessageBox.Show(
+                            "Seçili randevuyu iptal etmek istiyor musunuz?",
+                            "Randevu İptali",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Question);
+
+
+                    if (confirm !=
+                        DialogResult.Yes)
+                    {
+                        return;
+                    }
+
+
                     _patientService
                         .CancelAppointment(
                             id);
@@ -576,6 +695,10 @@ public class PatientForm :
 
         footer.Controls.Add(
             cancel);
+
+
+        appointmentsGrid.Dock =
+            DockStyle.Fill;
 
 
         panel.Controls.Add(
@@ -617,7 +740,7 @@ public class PatientForm :
                             a.HealthService.Name,
 
                         Durum =
-                            AppointmentStatusText(
+                            StatusText(
                                 a.Status),
 
                         Fiyat =
@@ -640,7 +763,7 @@ public class PatientForm :
                     title,
 
                 Left =
-                    20,
+                    25,
 
                 Top =
                     y,
@@ -651,13 +774,13 @@ public class PatientForm :
 
 
         control.Left =
-            20;
+            25;
 
         control.Top =
             y + 25;
 
         control.Width =
-            350;
+            360;
 
 
         parent.Controls.Add(
@@ -668,7 +791,7 @@ public class PatientForm :
 
 
         y +=
-            70;
+            75;
     }
 
 
@@ -686,6 +809,9 @@ public class PatientForm :
             AllowUserToDeleteRows =
                 false,
 
+            RowHeadersVisible =
+                false,
+
             SelectionMode =
                 DataGridViewSelectionMode
                     .FullRowSelect,
@@ -695,33 +821,41 @@ public class PatientForm :
                     .Fill,
 
             BackgroundColor =
-                Color.White
+                Color.White,
+
+            BorderStyle =
+                BorderStyle.None,
+
+            RowTemplate =
+            {
+                Height = 32
+            }
         };
     }
 
 
-    private static string
-        AppointmentStatusText(
-            AppointmentStatus status)
+    private static string StatusText(
+        AppointmentStatus status)
     {
         return status switch
         {
-            AppointmentStatus.Pending
-                => "Beklemede",
+            AppointmentStatus.Pending =>
+                "Beklemede",
 
-            AppointmentStatus.Approved
-                => "Onaylandı",
+            AppointmentStatus.Approved =>
+                "Onaylandı",
 
-            AppointmentStatus.Rejected
-                => "Reddedildi",
+            AppointmentStatus.Rejected =>
+                "Reddedildi",
 
-            AppointmentStatus.Cancelled
-                => "İptal Edildi",
+            AppointmentStatus.Cancelled =>
+                "İptal Edildi",
 
-            AppointmentStatus.Completed
-                => "Tamamlandı",
+            AppointmentStatus.Completed =>
+                "Tamamlandı",
 
-            _ => "Bilinmiyor"
+            _ =>
+                "Bilinmiyor"
         };
     }
 }

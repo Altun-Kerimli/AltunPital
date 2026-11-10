@@ -36,10 +36,29 @@ public class PatientService : IPatientService
     }
 
 
-    public List<Branch> GetBranches()
+    public List<Branch> GetBranches(string? preferredCity = null)
     {
-        return _db.Branches
-            .OrderBy(b => b.City)
+        var query =
+            _db.Branches
+                .AsQueryable();
+
+        if (string.IsNullOrWhiteSpace(
+                preferredCity))
+        {
+            return query
+                .OrderBy(b => b.City)
+                .ThenBy(b => b.Name)
+                .ToList();
+        }
+
+        string city =
+            preferredCity.Trim();
+
+        return query
+            .OrderByDescending(b =>
+                b.City.ToLower() ==
+                city.ToLower())
+            .ThenBy(b => b.City)
             .ThenBy(b => b.Name)
             .ToList();
     }

@@ -17,6 +17,14 @@ public interface IAuthenticationService
         string phone,
         string password);
 
+    Patient RegisterPatient(
+        string firstName,
+        string lastName,
+        string email,
+        string phone,
+        string city,
+        string password);
+
     User Login(
         string email,
         string password);

@@ -10,10 +10,9 @@ namespace AltunPital.Interfaces;
 
 public interface IPatientService
 {
-    List<Branch> GetBranches();
+    List<Branch> GetBranches(string? preferredCity = null);
 
-    List<Department> GetDepartments(
-        int branchId);
+    List<Department> GetDepartments(int branchId);
 
     List<Doctor> GetDoctors(
         int branchId,
@@ -35,9 +34,7 @@ public interface IPatientService
         int healthServiceId,
         DateTime startDateTime);
 
-    List<Appointment> GetAppointments(
-        int patientId);
+    List<Appointment> GetAppointments(int patientId);
 
-    void CancelAppointment(
-        int appointmentId);
+    void CancelAppointment(int appointmentId);
 }
