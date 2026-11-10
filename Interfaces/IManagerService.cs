@@ -112,4 +112,8 @@ public interface IManagerService
     void RemoveEquipmentFromBranch(
         int branchId,
         int equipmentId);
+
+    List<Equipment> GetEquipment();
+
+    List<BranchEquipment> GetBranchEquipment(int? branchId = null);
 }

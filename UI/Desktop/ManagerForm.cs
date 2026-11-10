@@ -24,29 +24,8 @@ public class ManagerForm :
         _employeeService;
 
 
-    private readonly DataGridView
-        grid =
-            new()
-            {
-                ReadOnly = true,
-
-                AllowUserToAddRows =
-                    false,
-
-                AllowUserToDeleteRows =
-                    false,
-
-                SelectionMode =
-                    DataGridViewSelectionMode
-                        .FullRowSelect,
-
-                AutoSizeColumnsMode =
-                    DataGridViewAutoSizeColumnsMode
-                        .Fill,
-
-                BackgroundColor =
-                    Color.White
-            };
+    private readonly DataGridView grid =
+        CreateGrid();
 
 
     public ManagerForm(
@@ -113,10 +92,13 @@ public class ManagerForm :
 
         AddLogoutButton();
 
-
         ShowOverview();
     }
 
+
+    // =================================================
+    // GENEL BAKIŞ
+    // =================================================
 
     private void ShowOverview()
     {
@@ -130,7 +112,10 @@ public class ManagerForm :
                     true,
 
                 Padding =
-                    new Padding(15)
+                    new Padding(20),
+
+                BackColor =
+                    UiTheme.Background
             };
 
 
@@ -146,6 +131,7 @@ public class ManagerForm :
                 .GetBranches()
                 .Count);
 
+
         AddInfoCard(
             panel,
             "Hizmetler",
@@ -153,12 +139,22 @@ public class ManagerForm :
                 .GetHealthServices()
                 .Count);
 
+
+        AddInfoCard(
+            panel,
+            "Ekipmanlar",
+            _managerService
+                .GetEquipment()
+                .Count);
+
+
         AddInfoCard(
             panel,
             "Doktorlar",
             employees
                 .OfType<Doctor>()
                 .Count());
+
 
         AddInfoCard(
             panel,
@@ -174,19 +170,44 @@ public class ManagerForm :
     }
 
 
+    // =================================================
+    // ŞUBELER
+    // =================================================
+
     private void ShowBranches()
     {
         var panel =
-            CreateGridPanel(
-                out FlowLayoutPanel actions);
+            CreateCrudPage(
+                out var actions);
 
 
         actions.Controls.Add(
-            CreateActionButton(
-                "Yeni Şube",
+            ActionButton(
+                "Yeni",
                 AddBranch));
 
+        actions.Controls.Add(
+            ActionButton(
+                "Düzenle",
+                EditBranch));
 
+        actions.Controls.Add(
+            ActionButton(
+                "Sil",
+                DeleteBranch));
+
+
+        LoadBranches();
+
+
+        ShowPage(
+            "Şubeler",
+            panel);
+    }
+
+
+    private void LoadBranches()
+    {
         grid.DataSource =
             _managerService
                 .GetBranches()
@@ -205,6 +226,9 @@ public class ManagerForm :
                         Ilce =
                             b.District,
 
+                        Adres =
+                            b.Address,
+
                         Telefon =
                             b.Phone,
 
@@ -215,103 +239,39 @@ public class ManagerForm :
                             b.ClosingTime
                     })
                 .ToList();
-
-
-        ShowPage(
-            "Şubeler",
-            panel);
     }
 
 
     private void AddBranch()
     {
+        using var form =
+            new BranchEditForm();
+
+
+        if (form.ShowDialog(this) !=
+            DialogResult.OK)
+        {
+            return;
+        }
+
+
         try
         {
-            int? hospitalId =
-                PromptDialog.AskInt(
-                    "Yeni Şube",
-                    "Hastane ID:",
-                    1);
-
-            if (hospitalId == null)
-                return;
-
-
-            string? name =
-                PromptDialog.Ask(
-                    "Yeni Şube",
-                    "Şube adı:");
-
-            if (name == null)
-                return;
-
-
-            string? city =
-                PromptDialog.Ask(
-                    "Yeni Şube",
-                    "Şehir:");
-
-            if (city == null)
-                return;
-
-
-            string? district =
-                PromptDialog.Ask(
-                    "Yeni Şube",
-                    "İlçe:");
-
-            if (district == null)
-                return;
-
-
-            string address =
-                PromptDialog.Ask(
-                    "Yeni Şube",
-                    "Adres:")
-                ?? "";
-
-
-            string phone =
-                PromptDialog.Ask(
-                    "Yeni Şube",
-                    "Telefon:")
-                ?? "";
-
-
-            TimeOnly? opening =
-                PromptDialog.AskTime(
-                    "Yeni Şube",
-                    "Açılış saati (HH:mm):");
-
-            if (opening == null)
-                return;
-
-
-            TimeOnly? closing =
-                PromptDialog.AskTime(
-                    "Yeni Şube",
-                    "Kapanış saati (HH:mm):");
-
-            if (closing == null)
-                return;
-
-
-            _managerService
-                .AddBranch(
-                    hospitalId.Value,
-                    name,
-                    city,
-                    district,
-                    address,
-                    phone,
-                    opening.Value,
-                    closing.Value);
+            _managerService.AddBranch(
+                1,
+                form.BranchName,
+                form.City,
+                form.District,
+                form.Address,
+                form.Phone,
+                form.Opening,
+                form.Closing);
 
 
             ShowSuccess(
                 "Şube eklendi.");
 
-            ShowBranches();
+            LoadBranches();
         }
         catch (Exception ex)
         {
@@ -320,97 +280,49 @@ public class ManagerForm :
     }
 
 
-    private void ShowDepartments()
+    private void EditBranch()
     {
         try
         {
+            int id =
+                SelectedId();
+
+
             var branch =
-                PromptDialog.Choose(
-                    "Bölümler",
-                    "Şube seçiniz:",
-                    _managerService.GetBranches(),
-                    b =>
-                        $"{b.Name} - {b.City}");
-
-            if (branch == null)
-                return;
-
-
-            var panel =
-                CreateGridPanel(
-                    out FlowLayoutPanel actions);
-
-
-            actions.Controls.Add(
-                CreateActionButton(
-                    "Yeni Bölüm",
-                    () =>
-                        AddDepartment(
-                            branch)));
-
-
-            grid.DataSource =
                 _managerService
-                    .GetDepartments(
-                        branch.BranchId)
-                    .Select(d =>
-                        new
-                        {
-                            ID =
-                                d.DepartmentId,
-
-                            Bolum =
-                                d.Name,
-
-                            Aciklama =
-                                d.Description
-                        })
-                    .ToList();
+                    .GetBranches()
+                    .First(b =>
+                        b.BranchId ==
+                        id);
 
 
-            ShowPage(
-                $"Bölümler - {branch.Name}",
-                panel);
-        }
-        catch (Exception ex)
-        {
-            ShowError(ex);
-        }
-    }
+            using var form =
+                new BranchEditForm(
+                    branch);
 
 
-    private void AddDepartment(
-        Branch branch)
-    {
-        try
-        {
-            string? name =
-                PromptDialog.Ask(
-                    "Yeni Bölüm",
-                    "Bölüm adı:");
-
-            if (name == null)
+            if (form.ShowDialog(this) !=
+                DialogResult.OK)
+            {
                 return;
+            }
 
 
-            string description =
-                PromptDialog.Ask(
-                    "Yeni Bölüm",
-                    "Açıklama:")
-                ?? "";
-
-
-            _managerService
-                .AddDepartment(
-                    branch.BranchId,
-                    name,
-                    description);
+            _managerService.UpdateBranch(
+                id,
+                form.BranchName,
+                form.City,
+                form.District,
+                form.Address,
+                form.Phone,
+                form.Opening,
+                form.Closing);
 
 
             ShowSuccess(
-                "Bölüm eklendi.");
+                "Şube güncellendi.");
 
-            ShowDepartments();
+            LoadBranches();
         }
         catch (Exception ex)
         {
@@ -418,26 +330,258 @@ public class ManagerForm :
         }
     }
 
+
+    private void DeleteBranch()
+    {
+        try
+        {
+            int id =
+                SelectedId();
+
+
+            if (!ConfirmDelete())
+                return;
+
+
+            _managerService
+                .DeleteBranch(id);
+
+
+            LoadBranches();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    // =================================================
+    // BÖLÜMLER
+    // =================================================
+
+    private void ShowDepartments()
+    {
+        var panel =
+            CreateCrudPage(
+                out var actions);
+
+
+        actions.Controls.Add(
+            ActionButton(
+                "Yeni",
+                AddDepartment));
+
+        actions.Controls.Add(
+            ActionButton(
+                "Düzenle",
+                EditDepartment));
+
+        actions.Controls.Add(
+            ActionButton(
+                "Sil",
+                DeleteDepartment));
+
+
+        LoadDepartments();
+
+
+        ShowPage(
+            "Bölümler",
+            panel);
+    }
+
+
+    private void LoadDepartments()
+    {
+        var branches =
+            _managerService
+                .GetBranches();
+
+
+        grid.DataSource =
+            branches
+                .SelectMany(b =>
+                    _managerService
+                        .GetDepartments(
+                            b.BranchId)
+                        .Select(d =>
+                            new
+                            {
+                                ID =
+                                    d.DepartmentId,
+
+                                Sube =
+                                    b.Name,
+
+                                Bolum =
+                                    d.Name,
+
+                                Aciklama =
+                                    d.Description
+                            }))
+                .ToList();
+    }
+
+
+    private void AddDepartment()
+    {
+        var branches =
+            _managerService
+                .GetBranches();
+
+
+        using var form =
+            new DepartmentEditForm(
+                branches);
+
+
+        if (form.ShowDialog(this) !=
+            DialogResult.OK)
+        {
+            return;
+        }
+
+
+        try
+        {
+            _managerService
+                .AddDepartment(
+                    form.SelectedBranch.BranchId,
+                    form.DepartmentName,
+                    form.Description);
+
+
+            LoadDepartments();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    private void EditDepartment()
+    {
+        try
+        {
+            int id =
+                SelectedId();
+
+
+            var branches =
+                _managerService
+                    .GetBranches();
+
+
+            Department department =
+                branches
+                    .SelectMany(b =>
+                        _managerService
+                            .GetDepartments(
+                                b.BranchId))
+                    .First(d =>
+                        d.DepartmentId ==
+                        id);
+
+
+            using var form =
+                new DepartmentEditForm(
+                    branches,
+                    department);
+
+
+            if (form.ShowDialog(this) !=
+                DialogResult.OK)
+            {
+                return;
+            }
+
+
+            _managerService
+                .UpdateDepartment(
+                    id,
+                    form.DepartmentName,
+                    form.Description);
+
+
+            LoadDepartments();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    private void DeleteDepartment()
+    {
+        try
+        {
+            int id =
+                SelectedId();
+
+
+            if (!ConfirmDelete())
+                return;
+
+
+            _managerService
+                .DeleteDepartment(id);
+
+
+            LoadDepartments();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    // =================================================
+    // HİZMETLER
+    // =================================================
 
     private void ShowServices()
     {
         var panel =
-            CreateGridPanel(
-                out FlowLayoutPanel actions);
+            CreateCrudPage(
+                out var actions);
 
 
         actions.Controls.Add(
-            CreateActionButton(
-                "Yeni Hizmet",
+            ActionButton(
+                "Yeni",
                 AddService));
 
+        actions.Controls.Add(
+            ActionButton(
+                "Düzenle",
+                EditService));
 
         actions.Controls.Add(
-            CreateActionButton(
+            ActionButton(
+                "Sil",
+                DeleteService));
+
+        actions.Controls.Add(
+            ActionButton(
                 "Şubeye Ata",
-                AssignServiceToBranch));
+                AssignService));
 
 
+        LoadServices();
+
+
+        ShowPage(
+            "Hizmetler",
+            panel);
+    }
+
+
+    private void LoadServices()
+    {
         grid.DataSource =
             _managerService
                 .GetHealthServices()
@@ -450,61 +594,39 @@ public class ManagerForm :
                         Hizmet =
                             s.Name,
 
-                        SureDakika =
+                        Sure =
                             s.DurationMinutes,
 
                         Aciklama =
                             s.Description
                     })
                 .ToList();
-
-
-        ShowPage(
-            "Hizmetler",
-            panel);
     }
 
 
     private void AddService()
     {
+        using var form =
+            new HealthServiceEditForm();
+
+
+        if (form.ShowDialog(this) !=
+            DialogResult.OK)
+        {
+            return;
+        }
+
+
         try
         {
-            string? name =
-                PromptDialog.Ask(
-                    "Yeni Hizmet",
-                    "Hizmet adı:");
-
-            if (name == null)
-                return;
-
-
-            string description =
-                PromptDialog.Ask(
-                    "Yeni Hizmet",
-                    "Açıklama:")
-                ?? "";
-
-
-            int? duration =
-                PromptDialog.AskInt(
-                    "Yeni Hizmet",
-                    "Süre (dakika):");
-
-            if (duration == null)
-                return;
-
-
             _managerService
                 .AddHealthService(
-                    name,
-                    description,
-                    duration.Value);
+                    form.ServiceName,
+                    form.Description,
+                    form.Duration);
 
 
-            ShowSuccess(
-                "Hizmet eklendi.");
-
-            ShowServices();
+            LoadServices();
         }
         catch (Exception ex)
         {
@@ -513,7 +635,77 @@ public class ManagerForm :
     }
 
 
-    private void AssignServiceToBranch()
+    private void EditService()
+    {
+        try
+        {
+            int id =
+                SelectedId();
+
+
+            var service =
+                _managerService
+                    .GetHealthServices()
+                    .First(s =>
+                        s.HealthServiceId ==
+                        id);
+
+
+            using var form =
+                new HealthServiceEditForm(
+                    service);
+
+
+            if (form.ShowDialog(this) !=
+                DialogResult.OK)
+            {
+                return;
+            }
+
+
+            _managerService
+                .UpdateHealthService(
+                    id,
+                    form.ServiceName,
+                    form.Description,
+                    form.Duration);
+
+
+            LoadServices();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    private void DeleteService()
+    {
+        try
+        {
+            int id =
+                SelectedId();
+
+
+            if (!ConfirmDelete())
+                return;
+
+
+            _managerService
+                .DeleteHealthService(id);
+
+
+            LoadServices();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    private void AssignService()
     {
         try
         {
@@ -521,8 +713,10 @@ public class ManagerForm :
                 PromptDialog.Choose(
                     "Hizmet Ata",
                     "Şube seçiniz:",
-                    _managerService.GetBranches(),
+                    _managerService
+                        .GetBranches(),
                     b => b.Name);
+
 
             if (branch == null)
                 return;
@@ -532,8 +726,10 @@ public class ManagerForm :
                 PromptDialog.Choose(
                     "Hizmet Ata",
                     "Hizmet seçiniz:",
-                    _managerService.GetHealthServices(),
+                    _managerService
+                        .GetHealthServices(),
                     s => s.Name);
+
 
             if (service == null)
                 return;
@@ -544,6 +740,7 @@ public class ManagerForm :
                     "Hizmet Ata",
                     "Fiyat:");
 
+
             if (price == null)
                 return;
 
@@ -553,10 +750,6 @@ public class ManagerForm :
                     branch.BranchId,
                     service.HealthServiceId,
                     price.Value);
-
-
-            ShowSuccess(
-                "Hizmet şubeye atandı.");
         }
         catch (Exception ex)
         {
@@ -565,69 +758,159 @@ public class ManagerForm :
     }
 
 
+    // =================================================
+    // EKİPMANLAR
+    // =================================================
+
     private void ShowEquipment()
     {
         var panel =
-            new FlowLayoutPanel
-            {
-                Dock =
-                    DockStyle.Top,
-
-                Height =
-                    80,
-
-                Padding =
-                    new Padding(10)
-            };
+            CreateCrudPage(
+                out var actions);
 
 
-        panel.Controls.Add(
-            CreateActionButton(
-                "Yeni Ekipman",
+        actions.Controls.Add(
+            ActionButton(
+                "Yeni",
                 AddEquipment));
 
-        panel.Controls.Add(
-            CreateActionButton(
-                "Şubeye Ekipman Ata",
+        actions.Controls.Add(
+            ActionButton(
+                "Düzenle",
+                EditEquipment));
+
+        actions.Controls.Add(
+            ActionButton(
+                "Sil",
+                DeleteEquipment));
+
+        actions.Controls.Add(
+            ActionButton(
+                "Şubeye Ata",
                 AssignEquipment));
 
 
+        LoadEquipment();
+
+
         ShowPage(
-            "Ekipman Yönetimi",
+            "Ekipmanlar",
             panel);
+    }
+
+
+    private void LoadEquipment()
+    {
+        grid.DataSource =
+            _managerService
+                .GetEquipment()
+                .Select(e =>
+                    new
+                    {
+                        ID =
+                            e.EquipmentId,
+
+                        Ekipman =
+                            e.Name,
+
+                        Aciklama =
+                            e.Description
+                    })
+                .ToList();
     }
 
 
     private void AddEquipment()
     {
+        using var form =
+            new EquipmentEditForm();
+
+
+        if (form.ShowDialog(this) !=
+            DialogResult.OK)
+        {
+            return;
+        }
+
+
         try
         {
-            string? name =
-                PromptDialog.Ask(
-                    "Yeni Ekipman",
-                    "Ekipman adı:");
-
-            if (name == null)
-                return;
+            _managerService
+                .AddEquipment(
+                    form.EquipmentName,
+                    form.Description);
 
 
-            string description =
-                PromptDialog.Ask(
-                    "Yeni Ekipman",
-                    "Açıklama:")
-                ?? "";
+            LoadEquipment();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    private void EditEquipment()
+    {
+        try
+        {
+            int id =
+                SelectedId();
 
 
             var equipment =
                 _managerService
-                    .AddEquipment(
-                        name,
-                        description);
+                    .GetEquipment()
+                    .First(e =>
+                        e.EquipmentId ==
+                        id);
 
 
-            ShowSuccess(
-                $"Ekipman eklendi.\n" +
-                $"Ekipman ID: {equipment.EquipmentId}");
+            using var form =
+                new EquipmentEditForm(
+                    equipment);
+
+
+            if (form.ShowDialog(this) !=
+                DialogResult.OK)
+            {
+                return;
+            }
+
+
+            _managerService
+                .UpdateEquipment(
+                    id,
+                    form.EquipmentName,
+                    form.Description);
+
+
+            LoadEquipment();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    private void DeleteEquipment()
+    {
+        try
+        {
+            int id =
+                SelectedId();
+
+
+            if (!ConfirmDelete())
+                return;
+
+
+            _managerService
+                .DeleteEquipment(id);
+
+
+            LoadEquipment();
         }
         catch (Exception ex)
         {
@@ -643,20 +926,26 @@ public class ManagerForm :
             var branch =
                 PromptDialog.Choose(
                     "Ekipman Ata",
-                    "Şube seçiniz:",
-                    _managerService.GetBranches(),
+                    "Şube:",
+                    _managerService
+                        .GetBranches(),
                     b => b.Name);
+
 
             if (branch == null)
                 return;
 
 
-            int? equipmentId =
-                PromptDialog.AskInt(
+            var equipment =
+                PromptDialog.Choose(
                     "Ekipman Ata",
-                    "Ekipman ID:");
+                    "Ekipman:",
+                    _managerService
+                        .GetEquipment(),
+                    e => e.Name);
 
-            if (equipmentId == null)
+
+            if (equipment == null)
                 return;
 
 
@@ -665,6 +954,7 @@ public class ManagerForm :
                     "Ekipman Ata",
                     "Adet:");
 
+
             if (quantity == null)
                 return;
 
@@ -672,7 +962,7 @@ public class ManagerForm :
             _managerService
                 .AssignEquipmentToBranch(
                     branch.BranchId,
-                    equipmentId.Value,
+                    equipment.EquipmentId,
                     quantity.Value);
 
 
@@ -686,38 +976,38 @@ public class ManagerForm :
     }
 
 
+    // =================================================
+    // DOKTOR / PERSONEL
+    // =================================================
+
     private void ShowDoctors()
     {
         var panel =
-            CreateGridPanel(
-                out FlowLayoutPanel actions);
+            CreateCrudPage(
+                out var actions);
 
 
         actions.Controls.Add(
-            CreateActionButton(
+            ActionButton(
                 "Yeni Doktor",
                 AddDoctor));
 
-        actions.Controls.Add(
-            CreateActionButton(
-                "Hizmet Ata",
-                AssignDoctorService));
 
-        actions.Controls.Add(
-            CreateActionButton(
-                "Çalışma Saati Ata",
-                AssignDoctorSchedule));
+        LoadDoctors();
 
 
-        var doctors =
+        ShowPage(
+            "Doktorlar",
+            panel);
+    }
+
+
+    private void LoadDoctors()
+    {
+        grid.DataSource =
             _employeeService
                 .GetEmployees()
                 .OfType<Doctor>()
-                .ToList();
-
-
-        grid.DataSource =
-            doctors
                 .Select(d =>
                     new
                     {
@@ -743,306 +1033,33 @@ public class ManagerForm :
                             d.Department?.Name
                     })
                 .ToList();
-
-
-        ShowPage(
-            "Doktorlar",
-            panel);
     }
 
 
     private void AddDoctor()
     {
-        try
-        {
-            string? firstName =
-                PromptDialog.Ask(
-                    "Yeni Doktor",
-                    "Ad:");
-
-            if (firstName == null)
-                return;
-
-
-            string? lastName =
-                PromptDialog.Ask(
-                    "Yeni Doktor",
-                    "Soyad:");
-
-            if (lastName == null)
-                return;
-
-
-            string? email =
-                PromptDialog.Ask(
-                    "Yeni Doktor",
-                    "E-posta:");
-
-            if (email == null)
-                return;
-
-
-            string phone =
-                PromptDialog.Ask(
-                    "Yeni Doktor",
-                    "Telefon:")
-                ?? "";
-
-
-            string? password =
-                PromptDialog.Ask(
-                    "Yeni Doktor",
-                    "Şifre:",
-                    "",
-                    true);
-
-            if (password == null)
-                return;
-
-
-            string? employeeNumber =
-                PromptDialog.Ask(
-                    "Yeni Doktor",
-                    "Çalışan numarası:");
-
-            if (employeeNumber == null)
-                return;
-
-
-            var branch =
-                PromptDialog.Choose(
-                    "Yeni Doktor",
-                    "Şube:",
-                    _managerService.GetBranches(),
-                    b => b.Name);
-
-            if (branch == null)
-                return;
-
-
-            var department =
-                PromptDialog.Choose(
-                    "Yeni Doktor",
-                    "Bölüm:",
-                    _managerService
-                        .GetDepartments(
-                            branch.BranchId),
-                    d => d.Name);
-
-            if (department == null)
-                return;
-
-
-            string? specialization =
-                PromptDialog.Ask(
-                    "Yeni Doktor",
-                    "Uzmanlık:");
-
-            if (specialization == null)
-                return;
-
-
-            _employeeService
-                .AddDoctor(
-                    firstName,
-                    lastName,
-                    email,
-                    phone,
-                    password,
-                    employeeNumber,
-                    DateTime.Today,
-                    branch.BranchId,
-                    department.DepartmentId,
-                    specialization);
-
-
-            ShowSuccess(
-                "Doktor eklendi.");
-
-            ShowDoctors();
-        }
-        catch (Exception ex)
-        {
-            ShowError(ex);
-        }
-    }
-
-
-    private void AssignDoctorService()
-    {
-        try
-        {
-            var doctors =
-                _employeeService
-                    .GetEmployees()
-                    .OfType<Doctor>()
-                    .ToList();
-
-
-            var doctor =
-                PromptDialog.Choose(
-                    "Doktora Hizmet Ata",
-                    "Doktor:",
-                    doctors,
-                    d =>
-                        $"{d.FirstName} {d.LastName}");
-
-            if (doctor == null)
-                return;
-
-
-            var service =
-                PromptDialog.Choose(
-                    "Doktora Hizmet Ata",
-                    "Hizmet:",
-                    _managerService.GetHealthServices(),
-                    s => s.Name);
-
-            if (service == null)
-                return;
-
-
-            _employeeService
-                .AssignService(
-                    doctor.UserId,
-                    service.HealthServiceId);
-
-
-            ShowSuccess(
-                "Hizmet doktora atandı.");
-        }
-        catch (Exception ex)
-        {
-            ShowError(ex);
-        }
-    }
-
-
-    private void AssignDoctorSchedule()
-    {
-        try
-        {
-            var doctors =
-                _employeeService
-                    .GetEmployees()
-                    .OfType<Doctor>()
-                    .ToList();
-
-
-            var doctor =
-                PromptDialog.Choose(
-                    "Çalışma Saati",
-                    "Doktor:",
-                    doctors,
-                    d =>
-                        $"{d.FirstName} {d.LastName}");
-
-            if (doctor == null)
-                return;
-
-
-            var days =
-                new List<DayChoice>
-                {
-                    new(
-                        DayOfWeek.Monday,
-                        "Pazartesi"),
-
-                    new(
-                        DayOfWeek.Tuesday,
-                        "Salı"),
-
-                    new(
-                        DayOfWeek.Wednesday,
-                        "Çarşamba"),
-
-                    new(
-                        DayOfWeek.Thursday,
-                        "Perşembe"),
-
-                    new(
-                        DayOfWeek.Friday,
-                        "Cuma"),
-
-                    new(
-                        DayOfWeek.Saturday,
-                        "Cumartesi"),
-
-                    new(
-                        DayOfWeek.Sunday,
-                        "Pazar")
-                };
-
-
-            var day =
-                PromptDialog.Choose(
-                    "Çalışma Saati",
-                    "Gün:",
-                    days,
-                    d => d.Text);
-
-            if (day == null)
-                return;
-
-
-            TimeOnly? start =
-                PromptDialog.AskTime(
-                    "Çalışma Saati",
-                    "Başlangıç (HH:mm):");
-
-            if (start == null)
-                return;
-
-
-            TimeOnly? end =
-                PromptDialog.AskTime(
-                    "Çalışma Saati",
-                    "Bitiş (HH:mm):");
-
-            if (end == null)
-                return;
-
-
-            _employeeService
-                .AddSchedule(
-                    doctor.UserId,
-                    day.Day,
-                    start.Value,
-                    end.Value);
-
-
-            ShowSuccess(
-                "Çalışma saati eklendi.");
-        }
-        catch (Exception ex)
-        {
-            ShowError(ex);
-        }
+        MessageBox.Show(
+            "Doktor için tek-form düzenleme ekranı bir sonraki adımda bağlanacak.");
     }
 
 
     private void ShowHealthStaff()
     {
         var panel =
-            CreateGridPanel(
-                out FlowLayoutPanel actions);
+            CreateCrudPage(
+                out var actions);
 
 
         actions.Controls.Add(
-            CreateActionButton(
-                "Yeni Sağlık Personeli",
+            ActionButton(
+                "Yeni Personel",
                 AddHealthStaff));
 
 
-        var staff =
+        grid.DataSource =
             _employeeService
                 .GetEmployees()
                 .OfType<HealthStaff>()
-                .ToList();
-
-
-        grid.DataSource =
-            staff
                 .Select(s =>
                     new
                     {
@@ -1078,122 +1095,15 @@ public class ManagerForm :
 
     private void AddHealthStaff()
     {
-        try
-        {
-            string? firstName =
-                PromptDialog.Ask(
-                    "Yeni Sağlık Personeli",
-                    "Ad:");
-
-            if (firstName == null)
-                return;
-
-
-            string? lastName =
-                PromptDialog.Ask(
-                    "Yeni Sağlık Personeli",
-                    "Soyad:");
-
-            if (lastName == null)
-                return;
-
-
-            string? email =
-                PromptDialog.Ask(
-                    "Yeni Sağlık Personeli",
-                    "E-posta:");
-
-            if (email == null)
-                return;
-
-
-            string phone =
-                PromptDialog.Ask(
-                    "Yeni Sağlık Personeli",
-                    "Telefon:")
-                ?? "";
-
-
-            string? password =
-                PromptDialog.Ask(
-                    "Yeni Sağlık Personeli",
-                    "Şifre:",
-                    "",
-                    true);
-
-            if (password == null)
-                return;
-
-
-            string? employeeNumber =
-                PromptDialog.Ask(
-                    "Yeni Sağlık Personeli",
-                    "Çalışan numarası:");
-
-            if (employeeNumber == null)
-                return;
-
-
-            var branch =
-                PromptDialog.Choose(
-                    "Yeni Sağlık Personeli",
-                    "Şube:",
-                    _managerService.GetBranches(),
-                    b => b.Name);
-
-            if (branch == null)
-                return;
-
-
-            var department =
-                PromptDialog.Choose(
-                    "Yeni Sağlık Personeli",
-                    "Bölüm:",
-                    _managerService
-                        .GetDepartments(
-                            branch.BranchId),
-                    d => d.Name);
-
-
-            string? position =
-                PromptDialog.Ask(
-                    "Yeni Sağlık Personeli",
-                    "Görev / Pozisyon:");
-
-            if (position == null)
-                return;
-
-
-            _employeeService
-                .AddHealthStaff(
-                    firstName,
-                    lastName,
-                    email,
-                    phone,
-                    password,
-                    employeeNumber,
-                    DateTime.Today,
-                    branch.BranchId,
-                    department?.DepartmentId,
-                    position);
-
-
-            ShowSuccess(
-                "Sağlık personeli eklendi.");
-
-            ShowHealthStaff();
-        }
-        catch (Exception ex)
-        {
-            ShowError(ex);
-        }
+        MessageBox.Show(
+            "Personel için tek-form düzenleme ekranı bir sonraki adımda bağlanacak.");
     }
 
 
     private void ShowEmployees()
     {
         var panel =
-            CreateGridPanel(
+            CreateCrudPage(
                 out _);
 
 
@@ -1205,6 +1115,9 @@ public class ManagerForm :
                     {
                         ID =
                             e.UserId,
+
+                        Sube =
+                            e.Branch.Name,
 
                         Ad =
                             e.FirstName,
@@ -1218,15 +1131,11 @@ public class ManagerForm :
                         CalisanNo =
                             e.EmployeeNumber,
 
-                        Sube =
-                            e.Branch.Name,
-
                         Bolum =
                             e.Department?.Name,
 
                         Tur =
-                            EmployeeTypeText(
-                                e)
+                            EmployeeTypeText(e)
                     })
                 .ToList();
 
@@ -1237,11 +1146,22 @@ public class ManagerForm :
     }
 
 
-    private Panel CreateGridPanel(
+    // =================================================
+    // UI
+    // =================================================
+
+    private Panel CreateCrudPage(
         out FlowLayoutPanel actions)
     {
         var panel =
-            new Panel();
+            new Panel
+            {
+                BackColor =
+                    Color.White,
+
+                Padding =
+                    new Padding(15)
+            };
 
 
         actions =
@@ -1251,10 +1171,13 @@ public class ManagerForm :
                     DockStyle.Top,
 
                 Height =
-                    65,
+                    60,
 
                 Padding =
-                    new Padding(5)
+                    new Padding(5),
+
+                BackColor =
+                    Color.White
             };
 
 
@@ -1273,15 +1196,78 @@ public class ManagerForm :
     }
 
 
-    private static Button
-        CreateActionButton(
-            string text,
-            Action action)
+    private static DataGridView
+        CreateGrid()
+    {
+        var result =
+            new DataGridView
+            {
+                ReadOnly =
+                    true,
+
+                AllowUserToAddRows =
+                    false,
+
+                AllowUserToDeleteRows =
+                    false,
+
+                MultiSelect =
+                    false,
+
+                RowHeadersVisible =
+                    false,
+
+                SelectionMode =
+                    DataGridViewSelectionMode
+                        .FullRowSelect,
+
+                AutoSizeColumnsMode =
+                    DataGridViewAutoSizeColumnsMode
+                        .Fill,
+
+                AutoGenerateColumns =
+                    true,
+
+                BackgroundColor =
+                    Color.White,
+
+                BorderStyle =
+                    BorderStyle.None,
+
+                ColumnHeadersHeight =
+                    38,
+
+                RowTemplate =
+                {
+                    Height = 34
+                }
+            };
+
+
+        result.DataBindingComplete +=
+            (_, _) =>
+            {
+                foreach (DataGridViewColumn column
+                         in result.Columns)
+                {
+                    column.SortMode =
+                        DataGridViewColumnSortMode.Automatic;
+                }
+            };
+
+
+        return result;
+    }
+
+
+    private static Button ActionButton(
+        string text,
+        Action action)
     {
         var button =
             UiTheme.CreateButton(
                 text,
-                190);
+                145);
 
 
         button.Click +=
@@ -1290,6 +1276,35 @@ public class ManagerForm :
 
 
         return button;
+    }
+
+
+    private int SelectedId()
+    {
+        if (grid.CurrentRow ==
+            null)
+        {
+            throw new Exception(
+                "Önce bir satır seçiniz.");
+        }
+
+
+        return Convert.ToInt32(
+            grid.CurrentRow
+                .Cells["ID"]
+                .Value);
+    }
+
+
+    private static bool ConfirmDelete()
+    {
+        return MessageBox.Show(
+            "Seçili kayıt silinsin mi?",
+            "Silme Onayı",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning)
+            ==
+            DialogResult.Yes;
     }
 
 
@@ -1302,7 +1317,7 @@ public class ManagerForm :
             new Panel
             {
                 Width =
-                    230,
+                    220,
 
                 Height =
                     130,
@@ -1311,7 +1326,10 @@ public class ManagerForm :
                     Color.White,
 
                 Margin =
-                    new Padding(12)
+                    new Padding(12),
+
+                Padding =
+                    new Padding(20)
             };
 
 
@@ -1324,7 +1342,7 @@ public class ManagerForm :
                 Font =
                     new Font(
                         "Segoe UI",
-                        26,
+                        25,
                         FontStyle.Bold),
 
                 ForeColor =
@@ -1354,7 +1372,7 @@ public class ManagerForm :
                     20,
 
                 Top =
-                    80
+                    82
             };
 
 
@@ -1364,15 +1382,13 @@ public class ManagerForm :
         card.Controls.Add(
             label);
 
-
         panel.Controls.Add(
             card);
     }
 
 
-    private static string
-        EmployeeTypeText(
-            Employee employee)
+    private static string EmployeeTypeText(
+        Employee employee)
     {
         return employee switch
         {
@@ -1388,31 +1404,5 @@ public class ManagerForm :
             _ =>
                 "Çalışan"
         };
-    }
-
-
-    private class DayChoice
-    {
-        public DayOfWeek Day
-        {
-            get;
-        }
-
-        public string Text
-        {
-            get;
-        }
-
-
-        public DayChoice(
-            DayOfWeek day,
-            string text)
-        {
-            Day =
-                day;
-
-            Text =
-                text;
-        }
     }
 }

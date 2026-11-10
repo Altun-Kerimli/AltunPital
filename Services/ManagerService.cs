@@ -610,7 +610,6 @@ public class ManagerService : IManagerService
         _db.SaveChanges();
     }
 
-
     public void RemoveEquipmentFromBranch(
         int branchId,
         int equipmentId)
@@ -630,5 +629,43 @@ public class ManagerService : IManagerService
             branchEquipment);
 
         _db.SaveChanges();
+    }
+
+    public List<Equipment> GetEquipment()
+    {
+        return _db.Equipment
+            .OrderBy(e => e.Name)
+            .ToList();
+    }
+
+
+    public List<BranchEquipment>
+        GetBranchEquipment(
+            int? branchId = null)
+    {
+        var query =
+            _db.BranchEquipment
+                .Include(be =>
+                    be.Branch)
+                .Include(be =>
+                    be.Equipment)
+                .AsQueryable();
+
+
+        if (branchId.HasValue)
+        {
+            query =
+                query.Where(be =>
+                    be.BranchId ==
+                    branchId.Value);
+        }
+
+
+        return query
+            .OrderBy(be =>
+                be.Branch.Name)
+            .ThenBy(be =>
+                be.Equipment.Name)
+            .ToList();
     }
 }
