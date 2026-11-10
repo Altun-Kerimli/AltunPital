@@ -1,39 +1,58 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using AltunPital.Security;
+﻿using AltunPital.Security;
 
 namespace AltunPital.Data;
 
 public static class SeedData
 {
+    private record ServiceSeed(
+        string Name,
+        string Description,
+        int Duration,
+        decimal BasePrice);
+
     private record DoctorSeed(
         string FirstName,
         string LastName,
+        string Email,
         string Department,
         string Specialization,
-        string Service);
+        string Service,
+        TimeOnly StartTime,
+        TimeOnly EndTime);
 
     private record StaffSeed(
         string FirstName,
         string LastName,
+        string Email,
         string Department,
         string Position);
 
     private record PatientSeed(
         string FirstName,
-        string LastName);
+        string LastName,
+        string Email);
+
+    private record EquipmentAssignmentSeed(
+        string Equipment,
+        int Quantity);
+
+    private record CitySeed(
+        string City,
+        string District,
+        string[] Departments,
+        string[] Services,
+        DoctorSeed[] Doctors,
+        StaffSeed[] Staff,
+        PatientSeed[] Patients,
+        EquipmentAssignmentSeed[] Equipment);
 
 
     public static void Initialize(
         AppDbContext db)
     {
-        // =================================================
+        // =====================================================
         // HASTANE
-        // =================================================
+        // =====================================================
 
         var hospital =
             db.Hospitals
@@ -52,7 +71,6 @@ public static class SeedData
                         "AltunPital Sağlık Grubu"
                 };
 
-
             db.Hospitals.Add(
                 hospital);
 
@@ -60,66 +78,100 @@ public static class SeedData
         }
 
 
-        // =================================================
-        // HİZMETLER
-        // =================================================
+        // =====================================================
+        // GLOBAL HİZMET KATALOĞU
+        // =====================================================
 
-        var services =
-            new[]
-            {
-                new
-                {
-                    Name = "Genel Muayene",
-                    Description = "Genel doktor muayenesi",
-                    Duration = 30
-                },
+        ServiceSeed[] serviceCatalog =
+        [
+            new(
+                "Genel Muayene",
+                "Genel hekim muayenesi",
+                30,
+                850),
 
-                new
-                {
-                    Name = "Kardiyoloji Muayenesi",
-                    Description = "Kalp ve damar muayenesi",
-                    Duration = 30
-                },
+            new(
+                "Kardiyoloji Muayenesi",
+                "Kalp ve damar hastalıkları muayenesi",
+                30,
+                1450),
 
-                new
-                {
-                    Name = "Ortopedi Muayenesi",
-                    Description = "Kas ve iskelet sistemi muayenesi",
-                    Duration = 30
-                },
+            new(
+                "Ortopedi Muayenesi",
+                "Kas ve iskelet sistemi muayenesi",
+                30,
+                1300),
 
-                new
-                {
-                    Name = "Çocuk Sağlığı Muayenesi",
-                    Description = "Çocuk hastalıkları muayenesi",
-                    Duration = 30
-                },
+            new(
+                "Çocuk Sağlığı Muayenesi",
+                "Çocuk sağlığı ve hastalıkları muayenesi",
+                30,
+                1200),
 
-                new
-                {
-                    Name = "Dermatoloji Muayenesi",
-                    Description = "Deri hastalıkları muayenesi",
-                    Duration = 30
-                },
+            new(
+                "Dermatoloji Muayenesi",
+                "Deri hastalıkları muayenesi",
+                30,
+                1250),
 
-                new
-                {
-                    Name = "MR",
-                    Description = "Manyetik rezonans görüntüleme",
-                    Duration = 45
-                },
+            new(
+                "Nöroloji Muayenesi",
+                "Sinir sistemi hastalıkları muayenesi",
+                40,
+                1550),
 
-                new
-                {
-                    Name = "Laboratuvar",
-                    Description = "Temel laboratuvar işlemleri",
-                    Duration = 20
-                }
-            };
+            new(
+                "Dahiliye Muayenesi",
+                "İç hastalıkları muayenesi",
+                30,
+                1150),
+
+            new(
+                "KBB Muayenesi",
+                "Kulak burun boğaz muayenesi",
+                30,
+                1200),
+
+            new(
+                "Göz Muayenesi",
+                "Göz sağlığı ve hastalıkları muayenesi",
+                30,
+                1350),
+
+            new(
+                "Kadın Hastalıkları Muayenesi",
+                "Kadın hastalıkları ve doğum muayenesi",
+                40,
+                1500),
+
+            new(
+                "Fizik Tedavi Değerlendirmesi",
+                "Fizik tedavi ve rehabilitasyon değerlendirmesi",
+                45,
+                1400),
+
+            new(
+                "MR",
+                "Manyetik rezonans görüntüleme",
+                45,
+                2600),
+
+            new(
+                "Ultrason",
+                "Ultrason görüntüleme işlemi",
+                30,
+                1500),
+
+            new(
+                "Laboratuvar",
+                "Temel kan ve biyokimya testleri",
+                20,
+                650)
+        ];
 
 
         foreach (var item
-                 in services)
+                 in serviceCatalog)
         {
             if (!db.HealthServices.Any(s =>
                     s.Name == item.Name))
@@ -142,25 +194,29 @@ public static class SeedData
         db.SaveChanges();
 
 
-        // =================================================
-        // EKİPMANLAR
-        // =================================================
+        // =====================================================
+        // GLOBAL EKİPMAN KATALOĞU
+        // =====================================================
 
-        var equipmentSeeds =
-            new[]
-            {
-                "MR Cihazı",
-                "Röntgen Cihazı",
-                "Ultrason Cihazı",
-                "EKG Cihazı",
-                "Defibrilatör",
-                "Hasta Monitörü",
-                "Laboratuvar Analizörü"
-            };
+        string[] equipmentCatalog =
+        [
+            "MR Cihazı",
+            "Dijital Röntgen Cihazı",
+            "Ultrason Cihazı",
+            "EKG Cihazı",
+            "Defibrilatör",
+            "Hasta Monitörü",
+            "Laboratuvar Analizörü",
+            "EEG Cihazı",
+            "Endoskopi Sistemi",
+            "Göz Muayene Ünitesi",
+            "Fizik Tedavi Ünitesi",
+            "KBB Muayene Ünitesi"
+        ];
 
 
         foreach (string name
-                 in equipmentSeeds)
+                 in equipmentCatalog)
         {
             if (!db.Equipment.Any(e =>
                     e.Name == name))
@@ -172,7 +228,7 @@ public static class SeedData
                             name,
 
                         Description =
-                            $"{name} - AltunPital tıbbi ekipmanı"
+                            $"{name} için AltunPital tıbbi ekipman kaydı"
                     });
             }
         }
@@ -180,163 +236,823 @@ public static class SeedData
         db.SaveChanges();
 
 
-        // =================================================
-        // ŞEHİRLER
-        // =================================================
+        // =====================================================
+        // 5 FARKLI ŞEHİR / ŞUBE
+        // =====================================================
 
-        var cities =
-            new[]
-            {
-                new
-                {
-                    City = "Sakarya",
-                    District = "Serdivan"
-                },
+        CitySeed[] cities =
+        [
+            // =================================================
+            // SAKARYA
+            // =================================================
 
-                new
-                {
-                    City = "İstanbul",
-                    District = "Kadıköy"
-                },
+            new CitySeed(
+                "Sakarya",
+                "Serdivan",
 
-                new
-                {
-                    City = "Kocaeli",
-                    District = "İzmit"
-                },
-
-                new
-                {
-                    City = "Ankara",
-                    District = "Çankaya"
-                },
-
-                new
-                {
-                    City = "Bursa",
-                    District = "Nilüfer"
-                }
-            };
-
-
-        var departmentNames =
-            new[]
-            {
-                "Genel Tıp",
-                "Kardiyoloji",
-                "Ortopedi",
-                "Çocuk Sağlığı",
-                "Dermatoloji",
-                "Radyoloji"
-            };
-
-
-        var doctorTemplates =
-            new[]
-            {
-                new DoctorSeed(
-                    "Ahmet",
-                    "Yılmaz",
+                [
                     "Genel Tıp",
-                    "Genel Pratisyen",
-                    "Genel Muayene"),
-
-                new DoctorSeed(
-                    "Mehmet",
-                    "Kaya",
                     "Kardiyoloji",
-                    "Kardiyoloji",
-                    "Kardiyoloji Muayenesi"),
-
-                new DoctorSeed(
-                    "Zeynep",
-                    "Demir",
-                    "Ortopedi",
-                    "Ortopedi",
-                    "Ortopedi Muayenesi"),
-
-                new DoctorSeed(
-                    "Elif",
-                    "Çelik",
                     "Çocuk Sağlığı",
-                    "Çocuk Sağlığı ve Hastalıkları",
-                    "Çocuk Sağlığı Muayenesi"),
+                    "Radyoloji"
+                ],
 
-                new DoctorSeed(
-                    "Burak",
-                    "Aydın",
+                [
+                    "Genel Muayene",
+                    "Kardiyoloji Muayenesi",
+                    "Çocuk Sağlığı Muayenesi",
+                    "MR",
+                    "Ultrason",
+                    "Laboratuvar"
+                ],
+
+                [
+                    new(
+                        "Mehmet",
+                        "Kaya",
+                        "mehmet.kaya@altunpital.com",
+                        "Kardiyoloji",
+                        "Kardiyoloji",
+                        "Kardiyoloji Muayenesi",
+                        new TimeOnly(9, 0),
+                        new TimeOnly(17, 0)),
+
+                    new(
+                        "Selin",
+                        "Yalçın",
+                        "selin.yalcin@altunpital.com",
+                        "Genel Tıp",
+                        "Genel Pratisyen",
+                        "Genel Muayene",
+                        new TimeOnly(8, 30),
+                        new TimeOnly(16, 30)),
+
+                    new(
+                        "Murat",
+                        "Akın",
+                        "murat.akin@altunpital.com",
+                        "Çocuk Sağlığı",
+                        "Çocuk Sağlığı ve Hastalıkları",
+                        "Çocuk Sağlığı Muayenesi",
+                        new TimeOnly(9, 30),
+                        new TimeOnly(17, 30)),
+
+                    new(
+                        "Gökçe",
+                        "Erdem",
+                        "gokce.erdem@altunpital.com",
+                        "Radyoloji",
+                        "Radyoloji",
+                        "MR",
+                        new TimeOnly(8, 0),
+                        new TimeOnly(16, 0)),
+
+                    new(
+                        "Cihan",
+                        "Toprak",
+                        "cihan.toprak@altunpital.com",
+                        "Genel Tıp",
+                        "Aile Hekimliği",
+                        "Genel Muayene",
+                        new TimeOnly(10, 0),
+                        new TimeOnly(18, 0)),
+
+                    new(
+                        "Nihan",
+                        "Keskin",
+                        "nihan.keskin@altunpital.com",
+                        "Radyoloji",
+                        "Radyoloji",
+                        "Ultrason",
+                        new TimeOnly(9, 0),
+                        new TimeOnly(17, 0))
+                ],
+
+                [
+                    new(
+                        "Ayşe",
+                        "Koç",
+                        "ayse.koc@altunpital.com",
+                        "Kardiyoloji",
+                        "Hemşire"),
+
+                    new(
+                        "Emre",
+                        "Şahin",
+                        "emre.sahin@altunpital.com",
+                        "Radyoloji",
+                        "Radyoloji Teknisyeni"),
+
+                    new(
+                        "Merve",
+                        "Aksoy",
+                        "merve.aksoy@altunpital.com",
+                        "Çocuk Sağlığı",
+                        "Hemşire"),
+
+                    new(
+                        "Can",
+                        "Öztürk",
+                        "can.ozturk@altunpital.com",
+                        "Genel Tıp",
+                        "Sağlık Teknikeri")
+                ],
+
+                [
+                    new(
+                        "Ali",
+                        "Demir",
+                        "ali.demir@test.com"),
+
+                    new(
+                        "Deniz",
+                        "Yıldız",
+                        "deniz.yildiz@test.com"),
+
+                    new(
+                        "Ece",
+                        "Acar",
+                        "ece.acar@test.com")
+                ],
+
+                [
+                    new(
+                        "MR Cihazı",
+                        2),
+
+                    new(
+                        "Ultrason Cihazı",
+                        2),
+
+                    new(
+                        "EKG Cihazı",
+                        3),
+
+                    new(
+                        "Defibrilatör",
+                        4),
+
+                    new(
+                        "Laboratuvar Analizörü",
+                        2)
+                ]
+            ),
+
+
+            // =================================================
+            // İSTANBUL
+            // =================================================
+
+            new CitySeed(
+                "İstanbul",
+                "Kadıköy",
+
+                [
+                    "Nöroloji",
                     "Dermatoloji",
-                    "Dermatoloji",
-                    "Dermatoloji Muayenesi"),
+                    "KBB",
+                    "Göz",
+                    "Dahiliye"
+                ],
 
-                new DoctorSeed(
-                    "Selin",
-                    "Arslan",
-                    "Radyoloji",
-                    "Radyoloji",
-                    "MR")
-            };
+                [
+                    "Nöroloji Muayenesi",
+                    "Dermatoloji Muayenesi",
+                    "KBB Muayenesi",
+                    "Göz Muayenesi",
+                    "Dahiliye Muayenesi",
+                    "Laboratuvar"
+                ],
+
+                [
+                    new(
+                        "Kerem",
+                        "Arslan",
+                        "kerem.arslan@altunpital.com",
+                        "Nöroloji",
+                        "Nöroloji",
+                        "Nöroloji Muayenesi",
+                        new TimeOnly(9, 0),
+                        new TimeOnly(18, 0)),
+
+                    new(
+                        "Derya",
+                        "Tunç",
+                        "derya.tunc@altunpital.com",
+                        "Dermatoloji",
+                        "Dermatoloji",
+                        "Dermatoloji Muayenesi",
+                        new TimeOnly(10, 0),
+                        new TimeOnly(18, 0)),
+
+                    new(
+                        "Onur",
+                        "Korkmaz",
+                        "onur.korkmaz@altunpital.com",
+                        "KBB",
+                        "Kulak Burun Boğaz",
+                        "KBB Muayenesi",
+                        new TimeOnly(8, 30),
+                        new TimeOnly(16, 30)),
+
+                    new(
+                        "Buse",
+                        "Çetin",
+                        "buse.cetin@altunpital.com",
+                        "Göz",
+                        "Göz Hastalıkları",
+                        "Göz Muayenesi",
+                        new TimeOnly(9, 0),
+                        new TimeOnly(17, 0)),
+
+                    new(
+                        "Tolga",
+                        "Güneş",
+                        "tolga.gunes@altunpital.com",
+                        "Dahiliye",
+                        "İç Hastalıkları",
+                        "Dahiliye Muayenesi",
+                        new TimeOnly(9, 30),
+                        new TimeOnly(17, 30)),
+
+                    new(
+                        "Pelin",
+                        "Karaca",
+                        "pelin.karaca@altunpital.com",
+                        "Nöroloji",
+                        "Klinik Nörofizyoloji",
+                        "Nöroloji Muayenesi",
+                        new TimeOnly(11, 0),
+                        new TimeOnly(19, 0))
+                ],
+
+                [
+                    new(
+                        "Seda",
+                        "Balcı",
+                        "seda.balci@altunpital.com",
+                        "Nöroloji",
+                        "Hemşire"),
+
+                    new(
+                        "Kaan",
+                        "Ateş",
+                        "kaan.ates@altunpital.com",
+                        "Göz",
+                        "Optometri Teknisyeni"),
+
+                    new(
+                        "İrem",
+                        "Soylu",
+                        "irem.soylu@altunpital.com",
+                        "Dermatoloji",
+                        "Sağlık Teknikeri"),
+
+                    new(
+                        "Barış",
+                        "Ergin",
+                        "baris.ergin@altunpital.com",
+                        "KBB",
+                        "KBB Teknikeri")
+                ],
+
+                [
+                    new(
+                        "Naz",
+                        "Özkan",
+                        "naz.ozkan@test.com"),
+
+                    new(
+                        "Serkan",
+                        "Bulut",
+                        "serkan.bulut@test.com"),
+
+                    new(
+                        "Melis",
+                        "Avcı",
+                        "melis.avci@test.com")
+                ],
+
+                [
+                    new(
+                        "EEG Cihazı",
+                        3),
+
+                    new(
+                        "Göz Muayene Ünitesi",
+                        4),
+
+                    new(
+                        "KBB Muayene Ünitesi",
+                        3),
+
+                    new(
+                        "Hasta Monitörü",
+                        6),
+
+                    new(
+                        "Laboratuvar Analizörü",
+                        3)
+                ]
+            ),
 
 
-        var staffTemplates =
-            new[]
-            {
-                new StaffSeed(
-                    "Ayşe",
-                    "Koç",
+            // =================================================
+            // KOCAELİ
+            // =================================================
+
+            new CitySeed(
+                "Kocaeli",
+                "İzmit",
+
+                [
+                    "Ortopedi",
                     "Kardiyoloji",
-                    "Hemşire"),
-
-                new StaffSeed(
-                    "Emre",
-                    "Şahin",
-                    "Radyoloji",
-                    "Radyoloji Teknisyeni"),
-
-                new StaffSeed(
-                    "Merve",
-                    "Aksoy",
-                    "Çocuk Sağlığı",
-                    "Hemşire"),
-
-                new StaffSeed(
-                    "Can",
-                    "Öztürk",
                     "Genel Tıp",
-                    "Sağlık Teknikeri")
-            };
+                    "Radyoloji",
+                    "Çocuk Sağlığı"
+                ],
+
+                [
+                    "Ortopedi Muayenesi",
+                    "Kardiyoloji Muayenesi",
+                    "Genel Muayene",
+                    "Çocuk Sağlığı Muayenesi",
+                    "MR",
+                    "Laboratuvar"
+                ],
+
+                [
+                    new(
+                        "Hakan",
+                        "Duman",
+                        "hakan.duman@altunpital.com",
+                        "Ortopedi",
+                        "Ortopedi ve Travmatoloji",
+                        "Ortopedi Muayenesi",
+                        new TimeOnly(8, 0),
+                        new TimeOnly(16, 0)),
+
+                    new(
+                        "Aslı",
+                        "Özer",
+                        "asli.ozer@altunpital.com",
+                        "Kardiyoloji",
+                        "Kardiyoloji",
+                        "Kardiyoloji Muayenesi",
+                        new TimeOnly(9, 0),
+                        new TimeOnly(17, 0)),
+
+                    new(
+                        "Umut",
+                        "Turan",
+                        "umut.turan@altunpital.com",
+                        "Genel Tıp",
+                        "Genel Pratisyen",
+                        "Genel Muayene",
+                        new TimeOnly(8, 30),
+                        new TimeOnly(16, 30)),
+
+                    new(
+                        "Ceren",
+                        "Polat",
+                        "ceren.polat@altunpital.com",
+                        "Radyoloji",
+                        "Radyoloji",
+                        "MR",
+                        new TimeOnly(10, 0),
+                        new TimeOnly(18, 0)),
+
+                    new(
+                        "Furkan",
+                        "Eren",
+                        "furkan.eren@altunpital.com",
+                        "Çocuk Sağlığı",
+                        "Çocuk Sağlığı ve Hastalıkları",
+                        "Çocuk Sağlığı Muayenesi",
+                        new TimeOnly(9, 30),
+                        new TimeOnly(17, 30)),
+
+                    new(
+                        "Sibel",
+                        "Kurt",
+                        "sibel.kurt@altunpital.com",
+                        "Ortopedi",
+                        "Spor Hekimliği",
+                        "Ortopedi Muayenesi",
+                        new TimeOnly(11, 0),
+                        new TimeOnly(19, 0))
+                ],
+
+                [
+                    new(
+                        "Gamze",
+                        "Doğan",
+                        "gamze.dogan@altunpital.com",
+                        "Ortopedi",
+                        "Hemşire"),
+
+                    new(
+                        "Oğuz",
+                        "Çakır",
+                        "oguz.cakir@altunpital.com",
+                        "Kardiyoloji",
+                        "EKG Teknisyeni"),
+
+                    new(
+                        "Hilal",
+                        "Yaman",
+                        "hilal.yaman@altunpital.com",
+                        "Çocuk Sağlığı",
+                        "Hemşire"),
+
+                    new(
+                        "Berk",
+                        "Kılıç",
+                        "berk.kilic@altunpital.com",
+                        "Radyoloji",
+                        "Radyoloji Teknisyeni")
+                ],
+
+                [
+                    new(
+                        "Burcu",
+                        "Sezer",
+                        "burcu.sezer@test.com"),
+
+                    new(
+                        "Okan",
+                        "Işık",
+                        "okan.isik@test.com"),
+
+                    new(
+                        "Leyla",
+                        "Kaplan",
+                        "leyla.kaplan@test.com")
+                ],
+
+                [
+                    new(
+                        "Dijital Röntgen Cihazı",
+                        3),
+
+                    new(
+                        "MR Cihazı",
+                        1),
+
+                    new(
+                        "EKG Cihazı",
+                        2),
+
+                    new(
+                        "Defibrilatör",
+                        3),
+
+                    new(
+                        "Hasta Monitörü",
+                        5)
+                ]
+            ),
 
 
-        var patientTemplates =
-            new[]
-            {
-                new PatientSeed(
-                    "Ali",
-                    "Demir"),
+            // =================================================
+            // ANKARA
+            // =================================================
 
-                new PatientSeed(
-                    "Deniz",
-                    "Yıldız"),
+            new CitySeed(
+                "Ankara",
+                "Çankaya",
 
-                new PatientSeed(
-                    "Ece",
-                    "Acar")
-            };
+                [
+                    "Dahiliye",
+                    "Nöroloji",
+                    "Kadın Hastalıkları",
+                    "Göz",
+                    "Kardiyoloji"
+                ],
 
+                [
+                    "Dahiliye Muayenesi",
+                    "Nöroloji Muayenesi",
+                    "Kadın Hastalıkları Muayenesi",
+                    "Göz Muayenesi",
+                    "Kardiyoloji Muayenesi",
+                    "Ultrason",
+                    "Laboratuvar"
+                ],
+
+                [
+                    new(
+                        "Esra",
+                        "Bayram",
+                        "esra.bayram@altunpital.com",
+                        "Dahiliye",
+                        "İç Hastalıkları",
+                        "Dahiliye Muayenesi",
+                        new TimeOnly(8, 30),
+                        new TimeOnly(16, 30)),
+
+                    new(
+                        "Volkan",
+                        "Aksu",
+                        "volkan.aksu@altunpital.com",
+                        "Nöroloji",
+                        "Nöroloji",
+                        "Nöroloji Muayenesi",
+                        new TimeOnly(9, 0),
+                        new TimeOnly(17, 0)),
+
+                    new(
+                        "Şebnem",
+                        "Güler",
+                        "sebnem.guler@altunpital.com",
+                        "Kadın Hastalıkları",
+                        "Kadın Hastalıkları ve Doğum",
+                        "Kadın Hastalıkları Muayenesi",
+                        new TimeOnly(10, 0),
+                        new TimeOnly(18, 0)),
+
+                    new(
+                        "Eren",
+                        "Başar",
+                        "eren.basar@altunpital.com",
+                        "Göz",
+                        "Göz Hastalıkları",
+                        "Göz Muayenesi",
+                        new TimeOnly(9, 30),
+                        new TimeOnly(17, 30)),
+
+                    new(
+                        "Aylin",
+                        "Uçar",
+                        "aylin.ucar@altunpital.com",
+                        "Kardiyoloji",
+                        "Kardiyoloji",
+                        "Kardiyoloji Muayenesi",
+                        new TimeOnly(8, 0),
+                        new TimeOnly(16, 0)),
+
+                    new(
+                        "Koray",
+                        "Sönmez",
+                        "koray.sonmez@altunpital.com",
+                        "Dahiliye",
+                        "Endokrinoloji",
+                        "Dahiliye Muayenesi",
+                        new TimeOnly(11, 0),
+                        new TimeOnly(19, 0))
+                ],
+
+                [
+                    new(
+                        "Tuğba",
+                        "Ekinci",
+                        "tugba.ekinci@altunpital.com",
+                        "Kadın Hastalıkları",
+                        "Ebe"),
+
+                    new(
+                        "Sinan",
+                        "Gök",
+                        "sinan.gok@altunpital.com",
+                        "Nöroloji",
+                        "EEG Teknisyeni"),
+
+                    new(
+                        "Elvan",
+                        "Dursun",
+                        "elvan.dursun@altunpital.com",
+                        "Göz",
+                        "Sağlık Teknikeri"),
+
+                    new(
+                        "Yusuf",
+                        "Tan",
+                        "yusuf.tan@altunpital.com",
+                        "Kardiyoloji",
+                        "Hemşire")
+                ],
+
+                [
+                    new(
+                        "Gizem",
+                        "Bozkurt",
+                        "gizem.bozkurt@test.com"),
+
+                    new(
+                        "Mert",
+                        "Ekin",
+                        "mert.ekin@test.com"),
+
+                    new(
+                        "Zehra",
+                        "Yüksel",
+                        "zehra.yuksel@test.com")
+                ],
+
+                [
+                    new(
+                        "Ultrason Cihazı",
+                        4),
+
+                    new(
+                        "EEG Cihazı",
+                        2),
+
+                    new(
+                        "Göz Muayene Ünitesi",
+                        3),
+
+                    new(
+                        "EKG Cihazı",
+                        3),
+
+                    new(
+                        "Laboratuvar Analizörü",
+                        4)
+                ]
+            ),
+
+
+            // =================================================
+            // BURSA
+            // =================================================
+
+            new CitySeed(
+                "Bursa",
+                "Nilüfer",
+
+                [
+                    "Ortopedi",
+                    "Fizik Tedavi",
+                    "Dermatoloji",
+                    "Genel Tıp",
+                    "KBB"
+                ],
+
+                [
+                    "Ortopedi Muayenesi",
+                    "Fizik Tedavi Değerlendirmesi",
+                    "Dermatoloji Muayenesi",
+                    "Genel Muayene",
+                    "KBB Muayenesi",
+                    "Laboratuvar"
+                ],
+
+                [
+                    new(
+                        "Alper",
+                        "Köse",
+                        "alper.kose@altunpital.com",
+                        "Ortopedi",
+                        "Ortopedi ve Travmatoloji",
+                        "Ortopedi Muayenesi",
+                        new TimeOnly(9, 0),
+                        new TimeOnly(17, 0)),
+
+                    new(
+                        "İlayda",
+                        "Ersoy",
+                        "ilayda.ersoy@altunpital.com",
+                        "Fizik Tedavi",
+                        "Fizik Tedavi ve Rehabilitasyon",
+                        "Fizik Tedavi Değerlendirmesi",
+                        new TimeOnly(8, 30),
+                        new TimeOnly(16, 30)),
+
+                    new(
+                        "Batuhan",
+                        "Oral",
+                        "batuhan.oral@altunpital.com",
+                        "Dermatoloji",
+                        "Dermatoloji",
+                        "Dermatoloji Muayenesi",
+                        new TimeOnly(10, 0),
+                        new TimeOnly(18, 0)),
+
+                    new(
+                        "Defne",
+                        "Tekin",
+                        "defne.tekin@altunpital.com",
+                        "Genel Tıp",
+                        "Genel Pratisyen",
+                        "Genel Muayene",
+                        new TimeOnly(8, 0),
+                        new TimeOnly(16, 0)),
+
+                    new(
+                        "Rıza",
+                        "Gür",
+                        "riza.gur@altunpital.com",
+                        "KBB",
+                        "Kulak Burun Boğaz",
+                        "KBB Muayenesi",
+                        new TimeOnly(9, 30),
+                        new TimeOnly(17, 30)),
+
+                    new(
+                        "Lale",
+                        "Önal",
+                        "lale.onal@altunpital.com",
+                        "Fizik Tedavi",
+                        "Spor Rehabilitasyonu",
+                        "Fizik Tedavi Değerlendirmesi",
+                        new TimeOnly(11, 0),
+                        new TimeOnly(19, 0))
+                ],
+
+                [
+                    new(
+                        "Cansu",
+                        "Yüce",
+                        "cansu.yuce@altunpital.com",
+                        "Fizik Tedavi",
+                        "Fizyoterapi Teknikeri"),
+
+                    new(
+                        "Recep",
+                        "Kara",
+                        "recep.kara@altunpital.com",
+                        "Ortopedi",
+                        "Hemşire"),
+
+                    new(
+                        "Damla",
+                        "İnce",
+                        "damla.ince@altunpital.com",
+                        "Dermatoloji",
+                        "Sağlık Teknikeri"),
+
+                    new(
+                        "Taylan",
+                        "Özen",
+                        "taylan.ozen@altunpital.com",
+                        "KBB",
+                        "KBB Teknikeri")
+                ],
+
+                [
+                    new(
+                        "Pınar",
+                        "Çolakoğlu",
+                        "pinar.colakoglu@test.com"),
+
+                    new(
+                        "Erhan",
+                        "Mutlu",
+                        "erhan.mutlu@test.com"),
+
+                    new(
+                        "Ada",
+                        "Keleş",
+                        "ada.keles@test.com")
+                ],
+
+                [
+                    new(
+                        "Fizik Tedavi Ünitesi",
+                        5),
+
+                    new(
+                        "Dijital Röntgen Cihazı",
+                        2),
+
+                    new(
+                        "KBB Muayene Ünitesi",
+                        2),
+
+                    new(
+                        "Hasta Monitörü",
+                        4),
+
+                    new(
+                        "Defibrilatör",
+                        2)
+                ]
+            )
+        ];
+
+
+        // =====================================================
+        // ŞEHİR VERİLERİNİ OLUŞTUR
+        // =====================================================
 
         int cityIndex =
-            1;
+            0;
 
 
-        foreach (var location
+        foreach (CitySeed city
                  in cities)
         {
-            // -----------------------------------------
+            cityIndex++;
+
+
+            // -------------------------------------------------
             // ŞUBE
-            // -----------------------------------------
+            // -------------------------------------------------
 
             string branchName =
-                $"AltunPital {location.City}";
+                $"AltunPital {city.City}";
 
 
             var branch =
@@ -358,16 +1074,16 @@ public static class SeedData
                             branchName,
 
                         City =
-                            location.City,
+                            city.City,
 
                         District =
-                            location.District,
+                            city.District,
 
                         Address =
-                            $"{location.District}, {location.City}",
+                            $"{city.District}, {city.City}",
 
                         Phone =
-                            $"0{260 + cityIndex} 000 00 0{cityIndex}",
+                            $"0{260 + cityIndex} 400 00 {cityIndex:00}",
 
                         OpeningTime =
                             new TimeOnly(
@@ -376,7 +1092,7 @@ public static class SeedData
 
                         ClosingTime =
                             new TimeOnly(
-                                18,
+                                19,
                                 0)
                     };
 
@@ -388,12 +1104,12 @@ public static class SeedData
             }
 
 
-            // -----------------------------------------
+            // -------------------------------------------------
             // BÖLÜMLER
-            // -----------------------------------------
+            // -------------------------------------------------
 
             foreach (string departmentName
-                     in departmentNames)
+                     in city.Departments)
             {
                 if (!db.Departments.Any(d =>
                         d.BranchId ==
@@ -411,7 +1127,7 @@ public static class SeedData
                                 departmentName,
 
                             Description =
-                                $"{departmentName} Bölümü"
+                                $"{departmentName} bölümü"
                         });
                 }
             }
@@ -419,24 +1135,33 @@ public static class SeedData
             db.SaveChanges();
 
 
-            // -----------------------------------------
+            // -------------------------------------------------
             // ŞUBE HİZMETLERİ
-            // -----------------------------------------
+            // -------------------------------------------------
 
-            var allServices =
-                db.HealthServices
-                    .ToList();
-
-
-            foreach (var service
-                     in allServices)
+            foreach (string serviceName
+                     in city.Services)
             {
+                var catalogItem =
+                    serviceCatalog.First(s =>
+                        s.Name ==
+                        serviceName);
+
+
+                var service =
+                    db.HealthServices
+                        .First(s =>
+                            s.Name ==
+                            serviceName);
+
+
                 bool exists =
                     db.BranchServices.Any(bs =>
                         bs.BranchId ==
                             branch.BranchId &&
                         bs.HealthServiceId ==
                             service.HealthServiceId);
+
 
                 if (!exists)
                 {
@@ -450,11 +1175,8 @@ public static class SeedData
                                 service.HealthServiceId,
 
                             Price =
-                                700 +
-                                service.HealthServiceId *
-                                150 +
-                                cityIndex *
-                                50,
+                                catalogItem.BasePrice +
+                                cityIndex * 75,
 
                             IsAvailable =
                                 true
@@ -465,24 +1187,27 @@ public static class SeedData
             db.SaveChanges();
 
 
-            // -----------------------------------------
-            // ŞUBE EKİPMANLARI
-            // -----------------------------------------
+            // -------------------------------------------------
+            // EKİPMAN
+            // -------------------------------------------------
 
-            var equipments =
-                db.Equipment
-                    .ToList();
-
-
-            foreach (var equipment
-                     in equipments)
+            foreach (var assignment
+                     in city.Equipment)
             {
+                var equipment =
+                    db.Equipment
+                        .First(e =>
+                            e.Name ==
+                            assignment.Equipment);
+
+
                 bool exists =
                     db.BranchEquipment.Any(be =>
                         be.BranchId ==
                             branch.BranchId &&
                         be.EquipmentId ==
                             equipment.EquipmentId);
+
 
                 if (!exists)
                 {
@@ -496,11 +1221,7 @@ public static class SeedData
                                 equipment.EquipmentId,
 
                             Quantity =
-                                1 +
-                                (
-                                    equipment.EquipmentId +
-                                    cityIndex
-                                ) % 3,
+                                assignment.Quantity,
 
                             IsOperational =
                                 true
@@ -511,26 +1232,25 @@ public static class SeedData
             db.SaveChanges();
 
 
-            // -----------------------------------------
+            // -------------------------------------------------
             // DOKTORLAR
-            // -----------------------------------------
+            // -------------------------------------------------
 
-            int doctorNumber =
-                1;
+            int doctorIndex =
+                0;
 
 
-            foreach (var template
-                     in doctorTemplates)
+            foreach (DoctorSeed doctorSeed
+                     in city.Doctors)
             {
-                string email =
-                    $"doktor{cityIndex}{doctorNumber}@altunpital.com";
+                doctorIndex++;
 
 
                 var doctor =
                     db.Doctors
                         .FirstOrDefault(d =>
                             d.Email ==
-                            email);
+                            doctorSeed.Email);
 
 
                 if (doctor == null)
@@ -541,35 +1261,35 @@ public static class SeedData
                                 d.BranchId ==
                                     branch.BranchId &&
                                 d.Name ==
-                                    template.Department);
+                                    doctorSeed.Department);
 
 
                     doctor =
                         new Doctor
                         {
                             FirstName =
-                                template.FirstName,
+                                doctorSeed.FirstName,
 
                             LastName =
-                                $"{template.LastName} {location.City}",
+                                doctorSeed.LastName,
 
                             Email =
-                                email,
+                                doctorSeed.Email,
 
                             Phone =
-                                $"0555{cityIndex}{doctorNumber}0001",
+                                $"0555{cityIndex}{doctorIndex}1000",
 
                             PasswordHash =
                                 PasswordHasher.HashPassword(
                                     "doktor123"),
 
                             EmployeeNumber =
-                                $"DOC-{cityIndex:00}-{doctorNumber:00}",
+                                $"DOC-{cityIndex:00}-{doctorIndex:00}",
 
                             HireDate =
                                 DateTime.Today
                                     .AddYears(
-                                        -doctorNumber),
+                                        -(2 + doctorIndex)),
 
                             BranchId =
                                 branch.BranchId,
@@ -578,7 +1298,7 @@ public static class SeedData
                                 department.DepartmentId,
 
                             Specialization =
-                                template.Specialization
+                                doctorSeed.Specialization
                         };
 
 
@@ -589,22 +1309,18 @@ public static class SeedData
                 }
 
 
-                var healthService =
+                var service =
                     db.HealthServices
                         .First(s =>
                             s.Name ==
-                            template.Service);
+                            doctorSeed.Service);
 
 
-                bool doctorServiceExists =
-                    db.DoctorServices.Any(ds =>
+                if (!db.DoctorServices.Any(ds =>
                         ds.DoctorId ==
                             doctor.UserId &&
                         ds.HealthServiceId ==
-                            healthService.HealthServiceId);
-
-
-                if (!doctorServiceExists)
+                            service.HealthServiceId))
                 {
                     db.DoctorServices.Add(
                         new DoctorService
@@ -613,7 +1329,7 @@ public static class SeedData
                                 doctor.UserId,
 
                             HealthServiceId =
-                                healthService.HealthServiceId
+                                service.HealthServiceId
                         });
                 }
 
@@ -622,19 +1338,15 @@ public static class SeedData
                      day <= 5;
                      day++)
                 {
-                    DayOfWeek weekDay =
+                    DayOfWeek dayOfWeek =
                         (DayOfWeek)day;
 
 
-                    bool scheduleExists =
-                        db.DoctorSchedules.Any(s =>
+                    if (!db.DoctorSchedules.Any(s =>
                             s.DoctorId ==
                                 doctor.UserId &&
                             s.DayOfWeek ==
-                                weekDay);
-
-
-                    if (!scheduleExists)
+                                dayOfWeek))
                     {
                         db.DoctorSchedules.Add(
                             new DoctorSchedule
@@ -643,204 +1355,190 @@ public static class SeedData
                                     doctor.UserId,
 
                                 DayOfWeek =
-                                    weekDay,
+                                    dayOfWeek,
 
                                 StartTime =
-                                    new TimeOnly(
-                                        9,
-                                        0),
+                                    doctorSeed.StartTime,
 
                                 EndTime =
-                                    new TimeOnly(
-                                        17,
-                                        0)
+                                    doctorSeed.EndTime
                             });
                     }
                 }
 
 
                 db.SaveChanges();
-
-                doctorNumber++;
             }
 
 
-            // -----------------------------------------
+            // -------------------------------------------------
             // SAĞLIK PERSONELİ
-            // -----------------------------------------
+            // -------------------------------------------------
 
-            int staffNumber =
-                1;
+            int staffIndex =
+                0;
 
 
-            foreach (var template
-                     in staffTemplates)
+            foreach (StaffSeed staffSeed
+                     in city.Staff)
             {
-                string email =
-                    $"personel{cityIndex}{staffNumber}@altunpital.com";
+                staffIndex++;
 
 
-                if (!db.HealthStaff.Any(s =>
+                if (db.HealthStaff.Any(s =>
                         s.Email ==
-                        email))
+                        staffSeed.Email))
                 {
-                    var department =
-                        db.Departments
-                            .First(d =>
-                                d.BranchId ==
-                                    branch.BranchId &&
-                                d.Name ==
-                                    template.Department);
-
-
-                    db.HealthStaff.Add(
-                        new HealthStaff
-                        {
-                            FirstName =
-                                template.FirstName,
-
-                            LastName =
-                                $"{template.LastName} {location.City}",
-
-                            Email =
-                                email,
-
-                            Phone =
-                                $"0532{cityIndex}{staffNumber}0001",
-
-                            PasswordHash =
-                                PasswordHasher.HashPassword(
-                                    "personel123"),
-
-                            EmployeeNumber =
-                                $"STAFF-{cityIndex:00}-{staffNumber:00}",
-
-                            HireDate =
-                                DateTime.Today
-                                    .AddYears(
-                                        -staffNumber),
-
-                            BranchId =
-                                branch.BranchId,
-
-                            DepartmentId =
-                                department.DepartmentId,
-
-                            Position =
-                                template.Position
-                        });
+                    continue;
                 }
 
 
-                staffNumber++;
+                var department =
+                    db.Departments
+                        .First(d =>
+                            d.BranchId ==
+                                branch.BranchId &&
+                            d.Name ==
+                                staffSeed.Department);
+
+
+                db.HealthStaff.Add(
+                    new HealthStaff
+                    {
+                        FirstName =
+                            staffSeed.FirstName,
+
+                        LastName =
+                            staffSeed.LastName,
+
+                        Email =
+                            staffSeed.Email,
+
+                        Phone =
+                            $"0532{cityIndex}{staffIndex}2000",
+
+                        PasswordHash =
+                            PasswordHasher.HashPassword(
+                                "personel123"),
+
+                        EmployeeNumber =
+                            $"STAFF-{cityIndex:00}-{staffIndex:00}",
+
+                        HireDate =
+                            DateTime.Today
+                                .AddYears(
+                                    -(1 + staffIndex)),
+
+                        BranchId =
+                            branch.BranchId,
+
+                        DepartmentId =
+                            department.DepartmentId,
+
+                        Position =
+                            staffSeed.Position
+                    });
             }
 
             db.SaveChanges();
 
 
-            // -----------------------------------------
+            // -------------------------------------------------
             // HASTALAR
-            // -----------------------------------------
+            // -------------------------------------------------
 
-            int patientNumber =
-                1;
+            int patientIndex =
+                0;
 
 
-            foreach (var template
-                     in patientTemplates)
+            foreach (PatientSeed patientSeed
+                     in city.Patients)
             {
-                string email =
-                    $"hasta{cityIndex}{patientNumber}@test.com";
+                patientIndex++;
 
 
-                if (!db.Patients.Any(p =>
+                if (db.Patients.Any(p =>
                         p.Email ==
-                        email))
+                        patientSeed.Email))
                 {
-                    db.Patients.Add(
-                        new Patient
-                        {
-                            FirstName =
-                                template.FirstName,
-
-                            LastName =
-                                $"{template.LastName} {location.City}",
-
-                            Email =
-                                email,
-
-                            Phone =
-                                $"0542{cityIndex}{patientNumber}0001",
-
-                            City =
-                                location.City,
-
-                            PasswordHash =
-                                PasswordHasher.HashPassword(
-                                    "hasta123")
-                        });
+                    continue;
                 }
 
 
-                patientNumber++;
+                db.Patients.Add(
+                    new Patient
+                    {
+                        FirstName =
+                            patientSeed.FirstName,
+
+                        LastName =
+                            patientSeed.LastName,
+
+                        Email =
+                            patientSeed.Email,
+
+                        Phone =
+                            $"0542{cityIndex}{patientIndex}3000",
+
+                        City =
+                            city.City,
+
+                        PasswordHash =
+                            PasswordHasher.HashPassword(
+                                "hasta123")
+                    });
             }
 
             db.SaveChanges();
 
 
-            // -----------------------------------------
-            // RANDEVULAR
-            // -----------------------------------------
+            // -------------------------------------------------
+            // ÖRNEK RANDEVULAR
+            // -------------------------------------------------
 
-            var branchPatients =
-                db.Patients
-                    .Where(p =>
-                        p.City ==
-                        location.City)
-                    .Take(3)
+            var patients =
+                city.Patients
+                    .Select(p =>
+                        db.Patients.First(x =>
+                            x.Email ==
+                            p.Email))
                     .ToList();
 
 
-            var branchDoctors =
-                db.Doctors
-                    .Where(d =>
-                        d.BranchId ==
-                        branch.BranchId)
+            var doctors =
+                city.Doctors
                     .Take(3)
+                    .Select(d =>
+                        db.Doctors.First(x =>
+                            x.Email ==
+                            d.Email))
                     .ToList();
 
 
-            var statuses =
-                new[]
-                {
-                    AppointmentStatus.Pending,
-                    AppointmentStatus.Approved,
-                    AppointmentStatus.Completed
-                };
+            AppointmentStatus[] statuses =
+            [
+                AppointmentStatus.Pending,
+                AppointmentStatus.Approved,
+                AppointmentStatus.Completed
+            ];
 
 
             for (int i = 0;
-                 i < Math.Min(
-                     branchPatients.Count,
-                     branchDoctors.Count);
+                 i < 3;
                  i++)
             {
-                var patient =
-                    branchPatients[i];
+                Patient patient =
+                    patients[i];
 
-                var doctor =
-                    branchDoctors[i];
+                Doctor doctor =
+                    doctors[i];
 
 
                 var doctorService =
                     db.DoctorServices
-                        .FirstOrDefault(ds =>
+                        .First(ds =>
                             ds.DoctorId ==
                             doctor.UserId);
-
-
-                if (doctorService == null)
-                    continue;
 
 
                 var service =
@@ -851,11 +1549,15 @@ public static class SeedData
 
 
                 DateTime start =
-                    DateTime.Today
-                        .AddDays(
-                            7 + cityIndex + i)
-                        .AddHours(
-                            10 + i);
+                    NextWeekday(
+                        DateTime.Today
+                            .AddDays(
+                                2 + cityIndex + i),
+                        (DayOfWeek)(
+                            (int)DayOfWeek.Monday +
+                            (i % 5)))
+                    .AddHours(
+                        10 + i);
 
 
                 bool exists =
@@ -910,27 +1612,22 @@ public static class SeedData
                             price,
 
                         Status =
-                            statuses[
-                                i %
-                                statuses.Length],
+                            statuses[i],
 
                         CreatedAt =
                             DateTime.Now
                                 .AddDays(
-                                    -3)
+                                    -(i + 1))
                     });
             }
 
-
             db.SaveChanges();
-
-            cityIndex++;
         }
 
 
-        // =================================================
-        // DEFAULT MANAGER
-        // =================================================
+        // =====================================================
+        // YÖNETİCİ
+        // =====================================================
 
         const string managerEmail =
             "manager@altunpital.com";
@@ -940,7 +1637,7 @@ public static class SeedData
                 m.Email ==
                 managerEmail))
         {
-            var sakarya =
+            var sakaryaBranch =
                 db.Branches
                     .First(b =>
                         b.City ==
@@ -974,7 +1671,7 @@ public static class SeedData
                             .AddYears(-5),
 
                     BranchId =
-                        sakarya.BranchId,
+                        sakaryaBranch.BranchId,
 
                     DepartmentId =
                         null
@@ -983,5 +1680,30 @@ public static class SeedData
 
             db.SaveChanges();
         }
+    }
+
+
+    private static DateTime NextWeekday(
+        DateTime date,
+        DayOfWeek targetDay)
+    {
+        int daysToAdd =
+            (
+                (int)targetDay -
+                (int)date.DayOfWeek +
+                7
+            ) % 7;
+
+
+        if (daysToAdd == 0)
+        {
+            daysToAdd =
+                7;
+        }
+
+
+        return date.Date
+            .AddDays(
+                daysToAdd);
     }
 }
