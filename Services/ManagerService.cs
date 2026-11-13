@@ -668,4 +668,47 @@ public class ManagerService : IManagerService
                 be.Equipment.Name)
             .ToList();
     }
+
+    public List<BranchService> GetBranchServices(int? branchId = null)
+    {
+        var query =
+            _db.BranchServices
+                .Include(bs =>
+                    bs.Branch)
+                .Include(bs =>
+                    bs.HealthService)
+                .AsQueryable();
+
+
+        if (branchId.HasValue)
+        {
+            query =
+                query.Where(bs =>
+                    bs.BranchId ==
+                    branchId.Value);
+        }
+
+
+        return query.ToList();
+    }
+
+    public List<Appointment> GetBranchAppointments(int branchId)
+    {
+        return _db.Appointments
+            .Include(a =>
+                a.Patient)
+            .Include(a =>
+                a.Doctor)
+            .Include(a =>
+                a.HealthService)
+            .Include(a =>
+                a.Branch)
+            .Where(a =>
+                a.BranchId ==
+                branchId)
+            .OrderBy(a =>
+                a.AppointmentId)
+            .ToList();
+    }
+
 }

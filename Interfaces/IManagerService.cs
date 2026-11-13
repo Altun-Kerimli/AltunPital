@@ -116,4 +116,8 @@ public interface IManagerService
     List<Equipment> GetEquipment();
 
     List<BranchEquipment> GetBranchEquipment(int? branchId = null);
+
+    List<BranchService> GetBranchServices(int? branchId = null);
+
+    List<Appointment> GetBranchAppointments(int branchId);
 }

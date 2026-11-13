@@ -9,21 +9,18 @@ using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-using Label = System.Windows.Forms.Label;
+
 using Font = System.Drawing.Font;
+using Label = System.Windows.Forms.Label;
 
 namespace AltunPital.UI.Desktop;
 
-public class PatientForm :
-    DesktopShellForm
+public class PatientForm : DesktopShellForm
 {
-    private readonly IPatientService
-        _patientService;
+    private readonly IPatientService _patientService;
 
-
-    private readonly DataGridView
-        appointmentsGrid =
-            CreateGrid();
+    private readonly DataGridView appointmentsGrid =
+        UiTableHelper.CreateGrid();
 
 
     public PatientForm(
@@ -66,6 +63,10 @@ public class PatientForm :
     }
 
 
+    // =====================================================
+    // HASTA
+    // =====================================================
+
     private Patient GetPatient()
     {
         return AccountService
@@ -77,530 +78,700 @@ public class PatientForm :
     }
 
 
+    // =====================================================
+    // ANA SAYFA
+    // =====================================================
+
     private void ShowHome()
     {
-        var patient =
-            GetPatient();
+        try
+        {
+            Patient patient =
+                GetPatient();
 
 
-        var panel =
-            new Panel
-            {
-                BackColor =
-                    Color.White,
+            var panel =
+                new Panel
+                {
+                    BackColor =
+                        Color.White,
 
-                Padding =
-                    new Padding(30)
-            };
-
-
-        var title =
-            new Label
-            {
-                Text =
-                    $"Hoş geldiniz, " +
-                    $"{CurrentUser.FirstName} " +
-                    $"{CurrentUser.LastName}",
-
-                AutoSize =
-                    true,
-
-                Font =
-                    new Font(
-                        "Segoe UI",
-                        22,
-                        FontStyle.Bold),
-
-                Left =
-                    30,
-
-                Top =
-                    30
-            };
+                    Padding =
+                        new Padding(30)
+                };
 
 
-        var city =
-            new Label
-            {
-                Text =
-                    $"Şehriniz: " +
-                    $"{patient.City}",
+            var title =
+                new Label
+                {
+                    Text =
+                        $"Hoş geldiniz, " +
+                        $"{CurrentUser.FirstName} " +
+                        $"{CurrentUser.LastName}",
 
-                AutoSize =
-                    true,
+                    AutoSize =
+                        true,
 
-                ForeColor =
-                    UiTheme.Primary,
+                    Font =
+                        new Font(
+                            "Segoe UI",
+                            22,
+                            FontStyle.Bold),
 
-                Font =
-                    new Font(
-                        "Segoe UI",
-                        11,
-                        FontStyle.Bold),
+                    Left =
+                        30,
 
-                Left =
-                    30,
-
-                Top =
-                    90
-            };
+                    Top =
+                        30
+                };
 
 
-        var description =
-            new Label
-            {
-                Text =
-                    "Yeni randevu oluşturabilir, " +
-                    "randevularınızı takip edebilir ve " +
-                    "hesap bilgilerinizi yönetebilirsiniz.",
+            var city =
+                new Label
+                {
+                    Text =
+                        string.IsNullOrWhiteSpace(
+                            patient.City)
+                            ? "Şehir bilgisi girilmemiş."
+                            : $"Şehriniz: {patient.City}",
 
-                AutoSize =
-                    true,
+                    AutoSize =
+                        true,
 
-                Left =
-                    30,
+                    ForeColor =
+                        UiTheme.Primary,
 
-                Top =
-                    130
-            };
+                    Font =
+                        new Font(
+                            "Segoe UI",
+                            11,
+                            FontStyle.Bold),
+
+                    Left =
+                        30,
+
+                    Top =
+                        90
+                };
 
 
-        panel.Controls.Add(
-            title);
+            var description =
+                new Label
+                {
+                    Text =
+                        "AltunPital üzerinden yeni randevu oluşturabilir, " +
+                        "mevcut randevularınızı takip edebilir ve " +
+                        "hesap bilgilerinizi yönetebilirsiniz.",
 
-        panel.Controls.Add(
-            city);
+                    Width =
+                        800,
 
-        panel.Controls.Add(
-            description);
+                    Height =
+                        70,
+
+                    Left =
+                        30,
+
+                    Top =
+                        135
+                };
 
 
-        ShowPage(
-            "Ana Sayfa",
-            panel);
+            panel.Controls.Add(
+                title);
+
+            panel.Controls.Add(
+                city);
+
+            panel.Controls.Add(
+                description);
+
+
+            ShowPage(
+                "Ana Sayfa",
+                panel);
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
     }
 
 
+    // =====================================================
+    // RANDEVU AL
+    // =====================================================
+
     private void ShowCreateAppointment()
     {
-        var patient =
-            GetPatient();
-
-
-        var panel =
-            new Panel
-            {
-                AutoScroll =
-                    true,
-
-                BackColor =
-                    Color.White,
-
-                Padding =
-                    new Padding(25)
-            };
-
-
-        var cbBranch =
-            new ComboBox
-            {
-                DropDownStyle =
-                    ComboBoxStyle.DropDownList
-            };
-
-        var cbDepartment =
-            new ComboBox
-            {
-                DropDownStyle =
-                    ComboBoxStyle.DropDownList
-            };
-
-        var cbDoctor =
-            new ComboBox
-            {
-                DropDownStyle =
-                    ComboBoxStyle.DropDownList
-            };
-
-        var cbService =
-            new ComboBox
-            {
-                DropDownStyle =
-                    ComboBoxStyle.DropDownList
-            };
-
-
-        var datePicker =
-            new DateTimePicker
-            {
-                Format =
-                    DateTimePickerFormat.Short,
-
-                MinDate =
-                    DateTime.Today
-            };
-
-
-        var slots =
-            new ListBox();
-
-
-        int y =
-            25;
-
-
-        var cityInfo =
-            new Label
-            {
-                Text =
-                    string.IsNullOrWhiteSpace(
-                        patient.City)
-                        ? "Tüm şubeler gösteriliyor."
-                        : $"{patient.City} şubeleri listenin başında gösteriliyor.",
-
-                ForeColor =
-                    UiTheme.Primary,
-
-                AutoSize =
-                    true,
-
-                Left =
-                    25,
-
-                Top =
-                    y
-            };
-
-
-        panel.Controls.Add(
-            cityInfo);
-
-        y +=
-            45;
-
-
-        AddField(
-            panel,
-            "Şube",
-            cbBranch,
-            ref y);
-
-        AddField(
-            panel,
-            "Bölüm",
-            cbDepartment,
-            ref y);
-
-        AddField(
-            panel,
-            "Doktor",
-            cbDoctor,
-            ref y);
-
-        AddField(
-            panel,
-            "Hizmet",
-            cbService,
-            ref y);
-
-        AddField(
-            panel,
-            "Tarih",
-            datePicker,
-            ref y);
-
-
-        var slotLabel =
-            new Label
-            {
-                Text =
-                    "Uygun Saatler",
-
-                Left =
-                    25,
-
-                Top =
-                    y,
-
-                AutoSize =
-                    true
-            };
-
-
-        slots.Left =
-            25;
-
-        slots.Top =
-            y + 28;
-
-        slots.Width =
-            360;
-
-        slots.Height =
-            180;
-
-
-        panel.Controls.Add(
-            slotLabel);
-
-        panel.Controls.Add(
-            slots);
-
-
-        var loadSlots =
-            UiTheme.CreateButton(
-                "Uygun Saatleri Göster",
-                230);
-
-        loadSlots.Left =
-            420;
-
-        loadSlots.Top =
-            y + 28;
-
-
-        var create =
-            UiTheme.CreateButton(
-                "Randevu Oluştur",
-                230);
-
-        create.Left =
-            420;
-
-        create.Top =
-            y + 85;
-
-
-        panel.Controls.Add(
-            loadSlots);
-
-        panel.Controls.Add(
-            create);
-
-
-        var branches =
-            _patientService
-                .GetBranches(
-                    patient.City);
-
-
-        cbBranch.DataSource =
-            branches;
-
-        cbBranch.DisplayMember =
-            nameof(Branch.Name);
-
-
-        void LoadDepartments()
+        try
         {
-            if (cbBranch.SelectedItem
-                is not Branch branch)
-                return;
+            Patient patient =
+                GetPatient();
 
 
-            cbDepartment.DataSource =
+            var panel =
+                new Panel
+                {
+                    AutoScroll =
+                        true,
+
+                    BackColor =
+                        Color.White,
+
+                    Padding =
+                        new Padding(25)
+                };
+
+
+            var cbBranch =
+                new ComboBox
+                {
+                    DropDownStyle =
+                        ComboBoxStyle.DropDownList
+                };
+
+
+            var cbDepartment =
+                new ComboBox
+                {
+                    DropDownStyle =
+                        ComboBoxStyle.DropDownList
+                };
+
+
+            var cbDoctor =
+                new ComboBox
+                {
+                    DropDownStyle =
+                        ComboBoxStyle.DropDownList
+                };
+
+
+            var cbService =
+                new ComboBox
+                {
+                    DropDownStyle =
+                        ComboBoxStyle.DropDownList
+                };
+
+
+            var datePicker =
+                new DateTimePicker
+                {
+                    Format =
+                        DateTimePickerFormat.Short,
+
+                    MinDate =
+                        DateTime.Today
+                };
+
+
+            var slots =
+                new ListBox
+                {
+                    IntegralHeight =
+                        false
+                };
+
+
+            int y =
+                25;
+
+
+            var cityInfo =
+                new Label
+                {
+                    Text =
+                        string.IsNullOrWhiteSpace(
+                            patient.City)
+                            ? "Tüm şubeler gösteriliyor."
+                            : $"{patient.City} şehrindeki şubeler listenin başında gösterilir. " +
+                              "Diğer şehirlerdeki şubeleri de seçebilirsiniz.",
+
+                    ForeColor =
+                        UiTheme.Primary,
+
+                    AutoSize =
+                        false,
+
+                    Width =
+                        750,
+
+                    Height =
+                        45,
+
+                    Left =
+                        25,
+
+                    Top =
+                        y
+                };
+
+
+            panel.Controls.Add(
+                cityInfo);
+
+
+            y +=
+                55;
+
+
+            AddField(
+                panel,
+                "Şube",
+                cbBranch,
+                ref y);
+
+            AddField(
+                panel,
+                "Bölüm",
+                cbDepartment,
+                ref y);
+
+            AddField(
+                panel,
+                "Doktor",
+                cbDoctor,
+                ref y);
+
+            AddField(
+                panel,
+                "Hizmet",
+                cbService,
+                ref y);
+
+            AddField(
+                panel,
+                "Tarih",
+                datePicker,
+                ref y);
+
+
+            var slotLabel =
+                new Label
+                {
+                    Text =
+                        "Uygun Saatler",
+
+                    Left =
+                        25,
+
+                    Top =
+                        y,
+
+                    AutoSize =
+                        true
+                };
+
+
+            slots.Left =
+                25;
+
+            slots.Top =
+                y + 28;
+
+            slots.Width =
+                360;
+
+            slots.Height =
+                190;
+
+
+            panel.Controls.Add(
+                slotLabel);
+
+            panel.Controls.Add(
+                slots);
+
+
+            var loadSlotsButton =
+                UiTheme.CreateButton(
+                    "Uygun Saatleri Göster",
+                    230);
+
+            loadSlotsButton.Left =
+                420;
+
+            loadSlotsButton.Top =
+                y + 28;
+
+
+            var createButton =
+                UiTheme.CreateButton(
+                    "Randevu Oluştur",
+                    230);
+
+            createButton.Left =
+                420;
+
+            createButton.Top =
+                y + 85;
+
+
+            panel.Controls.Add(
+                loadSlotsButton);
+
+            panel.Controls.Add(
+                createButton);
+
+
+            List<DateTime> availableSlots =
+                new();
+
+
+            // -------------------------------------------------
+            // ŞUBELER
+            // -------------------------------------------------
+
+            var branches =
                 _patientService
-                    .GetDepartments(
-                        branch.BranchId);
-
-            cbDepartment.DisplayMember =
-                nameof(Department.Name);
-        }
+                    .GetBranches(
+                        patient.City);
 
 
-        void LoadDoctors()
-        {
-            if (cbBranch.SelectedItem
-                    is not Branch branch ||
-                cbDepartment.SelectedItem
-                    is not Department department)
+            cbBranch.DataSource =
+                branches;
+
+            cbBranch.DisplayMember =
+                nameof(Branch.Name);
+
+
+            // -------------------------------------------------
+            // BÖLÜMLER
+            // -------------------------------------------------
+
+            void LoadDepartments()
+            {
+                cbDepartment.DataSource =
+                    null;
+
+                cbDoctor.DataSource =
+                    null;
+
+                cbService.DataSource =
+                    null;
+
+                slots.Items.Clear();
+
+
+                if (cbBranch.SelectedItem
+                    is not Branch branch)
+                {
+                    return;
+                }
+
+
+                var departments =
+                    _patientService
+                        .GetDepartments(
+                            branch.BranchId);
+
+
+                cbDepartment.DataSource =
+                    departments;
+
+                cbDepartment.DisplayMember =
+                    nameof(Department.Name);
+            }
+
+
+            // -------------------------------------------------
+            // DOKTORLAR
+            // -------------------------------------------------
+
+            void LoadDoctors()
             {
                 cbDoctor.DataSource =
                     null;
 
-                return;
+                cbService.DataSource =
+                    null;
+
+                slots.Items.Clear();
+
+
+                if (cbBranch.SelectedItem
+                        is not Branch branch ||
+                    cbDepartment.SelectedItem
+                        is not Department department)
+                {
+                    return;
+                }
+
+
+                var doctors =
+                    _patientService
+                        .GetDoctors(
+                            branch.BranchId,
+                            department.DepartmentId);
+
+
+                cbDoctor.DataSource =
+                    doctors;
+
+
+                cbDoctor.Format -=
+                    DoctorComboFormat;
+
+                cbDoctor.Format +=
+                    DoctorComboFormat;
             }
 
 
-            cbDoctor.DataSource =
-                _patientService
-                    .GetDoctors(
-                        branch.BranchId,
-                        department.DepartmentId);
+            void DoctorComboFormat(
+                object? sender,
+                ListControlConvertEventArgs e)
+            {
+                if (e.ListItem
+                    is Doctor doctor)
+                {
+                    e.Value =
+                        $"{doctor.FirstName} " +
+                        $"{doctor.LastName} - " +
+                        $"{doctor.Specialization}";
+                }
+            }
 
-            cbDoctor.DisplayMember =
-                nameof(Doctor.LastName);
-        }
 
+            // -------------------------------------------------
+            // HİZMETLER
+            // -------------------------------------------------
 
-        void LoadServices()
-        {
-            if (cbBranch.SelectedItem
-                    is not Branch branch ||
-                cbDoctor.SelectedItem
-                    is not Doctor doctor)
+            void LoadServices()
             {
                 cbService.DataSource =
                     null;
 
-                return;
+                slots.Items.Clear();
+
+
+                if (cbBranch.SelectedItem
+                        is not Branch branch ||
+                    cbDoctor.SelectedItem
+                        is not Doctor doctor)
+                {
+                    return;
+                }
+
+
+                var services =
+                    _patientService
+                        .GetServices(
+                            branch.BranchId,
+                            doctor.UserId);
+
+
+                cbService.DataSource =
+                    services;
+
+                cbService.DisplayMember =
+                    nameof(HealthService.Name);
             }
 
 
-            cbService.DataSource =
-                _patientService
-                    .GetServices(
-                        branch.BranchId,
-                        doctor.UserId);
+            // -------------------------------------------------
+            // EVENTS
+            // -------------------------------------------------
 
-            cbService.DisplayMember =
-                nameof(HealthService.Name);
-        }
-
-
-        cbBranch.SelectedIndexChanged +=
-            (_, _) =>
-            {
-                LoadDepartments();
-                LoadDoctors();
-                LoadServices();
-            };
-
-
-        cbDepartment.SelectedIndexChanged +=
-            (_, _) =>
-            {
-                LoadDoctors();
-                LoadServices();
-            };
-
-
-        cbDoctor.SelectedIndexChanged +=
-            (_, _) =>
-                LoadServices();
-
-
-        List<DateTime> availableSlots =
-            new();
-
-
-        loadSlots.Click +=
-            (_, _) =>
-            {
-                try
+            cbBranch.SelectedIndexChanged +=
+                (_, _) =>
                 {
-                    if (cbDoctor.SelectedItem
-                            is not Doctor doctor ||
-                        cbService.SelectedItem
-                            is not HealthService service)
-                    {
-                        throw new Exception(
-                            "Doktor ve hizmet seçiniz.");
-                    }
+                    LoadDepartments();
+                    LoadDoctors();
+                    LoadServices();
+                };
 
 
-                    availableSlots =
-                        _patientService
-                            .GetAvailableSlots(
-                                doctor.UserId,
-                                service.HealthServiceId,
-                                DateOnly.FromDateTime(
-                                    datePicker.Value));
+            cbDepartment.SelectedIndexChanged +=
+                (_, _) =>
+                {
+                    LoadDoctors();
+                    LoadServices();
+                };
 
 
+            cbDoctor.SelectedIndexChanged +=
+                (_, _) =>
+                {
+                    LoadServices();
+                };
+
+
+            cbService.SelectedIndexChanged +=
+                (_, _) =>
+                {
                     slots.Items.Clear();
+                    availableSlots.Clear();
+                };
 
 
-                    foreach (var slot
-                             in availableSlots)
-                    {
-                        slots.Items.Add(
-                            slot.ToString(
-                                "HH:mm"));
-                    }
-
-
-                    if (availableSlots.Count ==
-                        0)
-                    {
-                        MessageBox.Show(
-                            "Bu tarihte uygun saat bulunamadı.",
-                            "Bilgi",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Information);
-                    }
-                }
-                catch (Exception ex)
+            datePicker.ValueChanged +=
+                (_, _) =>
                 {
-                    ShowError(ex);
-                }
-            };
+                    slots.Items.Clear();
+                    availableSlots.Clear();
+                };
 
 
-        create.Click +=
-            (_, _) =>
-            {
-                try
+            // -------------------------------------------------
+            // UYGUN SAATLER
+            // -------------------------------------------------
+
+            loadSlotsButton.Click +=
+                (_, _) =>
                 {
-                    if (cbBranch.SelectedItem
-                            is not Branch branch ||
-                        cbDoctor.SelectedItem
-                            is not Doctor doctor ||
-                        cbService.SelectedItem
-                            is not HealthService service)
+                    try
                     {
-                        throw new Exception(
-                            "Şube, doktor ve hizmet seçiniz.");
+                        if (cbDoctor.SelectedItem
+                                is not Doctor doctor ||
+                            cbService.SelectedItem
+                                is not HealthService service)
+                        {
+                            throw new Exception(
+                                "Doktor ve hizmet seçiniz.");
+                        }
+
+
+                        availableSlots =
+                            _patientService
+                                .GetAvailableSlots(
+                                    doctor.UserId,
+                                    service.HealthServiceId,
+                                    DateOnly.FromDateTime(
+                                        datePicker.Value));
+
+
+                        slots.Items.Clear();
+
+
+                        foreach (DateTime slot
+                                 in availableSlots)
+                        {
+                            slots.Items.Add(
+                                slot.ToString(
+                                    "HH:mm"));
+                        }
+
+
+                        if (availableSlots.Count ==
+                            0)
+                        {
+                            MessageBox.Show(
+                                "Seçilen tarihte uygun randevu saati bulunamadı.",
+                                "Uygun Saat Bulunamadı",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Information);
+                        }
                     }
-
-
-                    if (slots.SelectedIndex <
-                        0)
+                    catch (Exception ex)
                     {
-                        throw new Exception(
-                            "Bir randevu saati seçiniz.");
+                        ShowError(ex);
                     }
+                };
 
 
-                    DateTime selected =
-                        availableSlots[
-                            slots.SelectedIndex];
+            // -------------------------------------------------
+            // RANDEVU OLUŞTUR
+            // -------------------------------------------------
 
-
-                    var appointment =
-                        _patientService
-                            .CreateAppointment(
-                                CurrentUser.UserId,
-                                doctor.UserId,
-                                branch.BranchId,
-                                service.HealthServiceId,
-                                selected);
-
-
-                    ShowSuccess(
-                        "Randevu başarıyla oluşturuldu.\n\n" +
-                        $"Randevu ID: {appointment.AppointmentId}");
-
-
-                    ShowAppointments();
-                }
-                catch (Exception ex)
+            createButton.Click +=
+                (_, _) =>
                 {
-                    ShowError(ex);
-                }
-            };
+                    try
+                    {
+                        if (cbBranch.SelectedItem
+                                is not Branch branch ||
+                            cbDoctor.SelectedItem
+                                is not Doctor doctor ||
+                            cbService.SelectedItem
+                                is not HealthService service)
+                        {
+                            throw new Exception(
+                                "Şube, doktor ve hizmet seçiniz.");
+                        }
 
 
-        LoadDepartments();
-        LoadDoctors();
-        LoadServices();
+                        if (slots.SelectedIndex <
+                            0)
+                        {
+                            throw new Exception(
+                                "Uygun saatlerden birini seçiniz.");
+                        }
 
 
-        ShowPage(
-            "Randevu Al",
-            panel);
+                        if (slots.SelectedIndex >=
+                            availableSlots.Count)
+                        {
+                            throw new Exception(
+                                "Seçilen randevu saati geçersiz.");
+                        }
+
+
+                        DateTime selectedDateTime =
+                            availableSlots[
+                                slots.SelectedIndex];
+
+
+                        DialogResult confirm =
+                            MessageBox.Show(
+                                $"{doctor.FirstName} {doctor.LastName}\n" +
+                                $"{service.Name}\n" +
+                                $"{selectedDateTime:dd.MM.yyyy HH:mm}\n\n" +
+                                "Randevuyu oluşturmak istiyor musunuz?",
+                                "Randevu Onayı",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Question);
+
+
+                        if (confirm !=
+                            DialogResult.Yes)
+                        {
+                            return;
+                        }
+
+
+                        var appointment =
+                            _patientService
+                                .CreateAppointment(
+                                    CurrentUser.UserId,
+                                    doctor.UserId,
+                                    branch.BranchId,
+                                    service.HealthServiceId,
+                                    selectedDateTime);
+
+
+                        ShowSuccess(
+                            "Randevu başarıyla oluşturuldu.\n\n" +
+                            $"Randevu No: {appointment.AppointmentId}");
+
+
+                        ShowAppointments();
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowError(ex);
+                    }
+                };
+
+
+            LoadDepartments();
+
+
+            ShowPage(
+                "Randevu Al",
+                panel);
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
     }
 
+
+    // =====================================================
+    // RANDEVULARIM
+    // =====================================================
 
     private void ShowAppointments()
     {
@@ -616,49 +787,56 @@ public class PatientForm :
 
 
         var footer =
-            new Panel
+            new FlowLayoutPanel
             {
                 Dock =
                     DockStyle.Bottom,
 
                 Height =
-                    70,
+                    65,
 
                 Padding =
                     new Padding(
                         5,
                         10,
                         5,
-                        5)
+                        5),
+
+                FlowDirection =
+                    FlowDirection.LeftToRight,
+
+                BackColor =
+                    Color.White
             };
 
 
-        var cancel =
+        var refreshButton =
+            UiTheme.CreateButton(
+                "Yenile",
+                140);
+
+
+        var cancelButton =
             UiTheme.CreateButton(
                 "Seçili Randevuyu İptal Et",
                 250);
 
 
-        cancel.Click +=
+        refreshButton.Click +=
+            (_, _) =>
+                LoadAppointments();
+
+
+        cancelButton.Click +=
             (_, _) =>
             {
                 try
                 {
-                    if (appointmentsGrid
-                            .CurrentRow ==
-                        null)
-                    {
-                        throw new Exception(
-                            "Bir randevu seçiniz.");
-                    }
-
-
                     int id =
-                        Convert.ToInt32(
-                            appointmentsGrid
-                                .CurrentRow
-                                .Cells["ID"]
-                                .Value);
+                        UiTableHelper
+                            .SelectedInt(
+                                appointmentsGrid,
+                                "ID");
 
 
                     DialogResult confirm =
@@ -666,7 +844,7 @@ public class PatientForm :
                             "Seçili randevuyu iptal etmek istiyor musunuz?",
                             "Randevu İptali",
                             MessageBoxButtons.YesNo,
-                            MessageBoxIcon.Question);
+                            MessageBoxIcon.Warning);
 
 
                     if (confirm !=
@@ -684,6 +862,7 @@ public class PatientForm :
                     ShowSuccess(
                         "Randevu iptal edildi.");
 
+
                     LoadAppointments();
                 }
                 catch (Exception ex)
@@ -694,7 +873,10 @@ public class PatientForm :
 
 
         footer.Controls.Add(
-            cancel);
+            refreshButton);
+
+        footer.Controls.Add(
+            cancelButton);
 
 
         appointmentsGrid.Dock =
@@ -719,7 +901,8 @@ public class PatientForm :
 
     private void LoadAppointments()
     {
-        appointmentsGrid.DataSource =
+        UiTableHelper.Bind(
+            appointmentsGrid,
             _patientService
                 .GetAppointments(
                     CurrentUser.UserId)
@@ -732,6 +915,9 @@ public class PatientForm :
                         Tarih =
                             a.StartDateTime,
 
+                        Şube =
+                            a.Branch.Name,
+
                         Doktor =
                             $"{a.Doctor.FirstName} " +
                             $"{a.Doctor.LastName}",
@@ -739,16 +925,29 @@ public class PatientForm :
                         Hizmet =
                             a.HealthService.Name,
 
+                        Başlangıç =
+                            a.StartDateTime
+                                .ToString(
+                                    "HH:mm"),
+
+                        Bitiş =
+                            a.EndDateTime
+                                .ToString(
+                                    "HH:mm"),
+
                         Durum =
                             StatusText(
                                 a.Status),
 
                         Fiyat =
                             a.Price
-                    })
-                .ToList();
+                    }));
     }
 
+
+    // =====================================================
+    // UI YARDIMCILARI
+    // =====================================================
 
     private static void AddField(
         Control parent,
@@ -792,45 +991,6 @@ public class PatientForm :
 
         y +=
             75;
-    }
-
-
-    private static DataGridView
-        CreateGrid()
-    {
-        return new DataGridView
-        {
-            ReadOnly =
-                true,
-
-            AllowUserToAddRows =
-                false,
-
-            AllowUserToDeleteRows =
-                false,
-
-            RowHeadersVisible =
-                false,
-
-            SelectionMode =
-                DataGridViewSelectionMode
-                    .FullRowSelect,
-
-            AutoSizeColumnsMode =
-                DataGridViewAutoSizeColumnsMode
-                    .Fill,
-
-            BackgroundColor =
-                Color.White,
-
-            BorderStyle =
-                BorderStyle.None,
-
-            RowTemplate =
-            {
-                Height = 32
-            }
-        };
     }
 
 

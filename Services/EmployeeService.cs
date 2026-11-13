@@ -177,24 +177,87 @@ public class EmployeeService : IEmployeeService
 
     public void UpdateDoctor(
         int doctorId,
+        string firstName,
+        string lastName,
+        string email,
+        string phone,
+        string employeeNumber,
+        DateTime hireDate,
         int branchId,
         int departmentId,
         string specialization)
     {
         var doctor =
-            _db.Doctors.Find(doctorId);
-
-        if (doctor == null)
-            throw new Exception(
+            _db.Doctors
+                .FirstOrDefault(d =>
+                    d.UserId == doctorId)
+            ?? throw new Exception(
                 "Doktor bulunamadı.");
 
-        ValidateBranchAndDepartment(
-            branchId,
-            departmentId);
 
-        doctor.BranchId = branchId;
-        doctor.DepartmentId = departmentId;
-        doctor.Specialization = specialization;
+        if (_db.Users.Any(u =>
+                u.UserId != doctorId &&
+                u.Email == email))
+        {
+            throw new Exception(
+                "Bu e-posta başka bir kullanıcı tarafından kullanılıyor.");
+        }
+
+
+        if (_db.Employees.Any(e =>
+                e.UserId != doctorId &&
+                e.EmployeeNumber == employeeNumber))
+        {
+            throw new Exception(
+                "Bu çalışan numarası zaten kullanılıyor.");
+        }
+
+
+        var branch =
+            _db.Branches
+                .FirstOrDefault(b =>
+                    b.BranchId == branchId)
+            ?? throw new Exception(
+                "Şube bulunamadı.");
+
+
+        var department =
+            _db.Departments
+                .FirstOrDefault(d =>
+                    d.DepartmentId == departmentId &&
+                    d.BranchId == branchId)
+            ?? throw new Exception(
+                "Seçilen bölüm bu şubeye ait değil.");
+
+
+        doctor.FirstName =
+            firstName.Trim();
+
+        doctor.LastName =
+            lastName.Trim();
+
+        doctor.Email =
+            email.Trim()
+                .ToLowerInvariant();
+
+        doctor.Phone =
+            phone.Trim();
+
+        doctor.EmployeeNumber =
+            employeeNumber.Trim();
+
+        doctor.HireDate =
+            hireDate;
+
+        doctor.BranchId =
+            branchId;
+
+        doctor.DepartmentId =
+            departmentId;
+
+        doctor.Specialization =
+            specialization.Trim();
+
 
         _db.SaveChanges();
     }
@@ -400,8 +463,7 @@ public class EmployeeService : IEmployeeService
         if (!_db.Branches.Any(b =>
                 b.BranchId == branchId))
         {
-            throw new Exception(
-                "Şube bulunamadı.");
+            throw new Exception("Şube bulunamadı.");
         }
 
         bool validDepartment =
@@ -413,8 +475,7 @@ public class EmployeeService : IEmployeeService
 
         if (!validDepartment)
         {
-            throw new Exception(
-                "Bölüm seçilen şubeye ait değil.");
+            throw new Exception("Bölüm seçilen şubeye ait değil.");
         }
     }
 
@@ -426,17 +487,255 @@ public class EmployeeService : IEmployeeService
         if (_db.Users.Any(u =>
                 u.Email == email))
         {
-            throw new Exception(
-                "Bu e-posta adresi zaten kullanılıyor.");
+            throw new Exception("Bu e-posta adresi zaten kullanılıyor.");
         }
 
         if (_db.Employees.Any(e =>
                 e.EmployeeNumber ==
                     employeeNumber))
         {
-            throw new Exception(
-                "Bu çalışan numarası zaten kullanılıyor.");
+            throw new Exception("Bu çalışan numarası zaten kullanılıyor.");
         }
+    }
+
+    public void UpdateHealthStaff(
+    int staffId,
+    string firstName,
+    string lastName,
+    string email,
+    string phone,
+    string employeeNumber,
+    DateTime hireDate,
+    int branchId,
+    int? departmentId,
+    string position)
+    {
+        var staff =
+            _db.HealthStaff
+                .FirstOrDefault(s =>
+                    s.UserId == staffId)
+            ?? throw new Exception("Sağlık personeli bulunamadı.");
+
+
+        if (_db.Users.Any(u =>
+                u.UserId != staffId &&
+                u.Email == email))
+        {
+            throw new Exception("Bu e-posta başka bir kullanıcı tarafından kullanılıyor.");
+        }
+
+
+        if (_db.Employees.Any(e =>
+                e.UserId != staffId &&
+                e.EmployeeNumber ==
+                employeeNumber))
+        {
+            throw new Exception("Bu çalışan numarası zaten kullanılıyor.");
+        }
+
+
+        if (!_db.Branches.Any(b =>
+                b.BranchId == branchId))
+        {
+            throw new Exception("Şube bulunamadı.");
+        }
+
+
+        if (departmentId.HasValue &&
+            !_db.Departments.Any(d =>
+                d.DepartmentId ==
+                    departmentId &&
+                d.BranchId ==
+                    branchId))
+        {
+            throw new Exception("Bölüm seçilen şubeye ait değil.");
+        }
+
+
+        staff.FirstName =
+            firstName.Trim();
+
+        staff.LastName =
+            lastName.Trim();
+
+        staff.Email =
+            email.Trim()
+                .ToLowerInvariant();
+
+        staff.Phone =
+            phone.Trim();
+
+        staff.EmployeeNumber =
+            employeeNumber.Trim();
+
+        staff.HireDate =
+            hireDate;
+
+        staff.BranchId =
+            branchId;
+
+        staff.DepartmentId =
+            departmentId;
+
+        staff.Position =
+            position.Trim();
+
+
+        _db.SaveChanges();
+    }
+
+
+    public List<AltunPital.Data.DoctorService>
+        GetDoctorServices(
+            int? doctorId = null)
+    {
+        var query =
+            _db.DoctorServices
+                .Include(ds =>
+                    ds.Doctor)
+                .Include(ds =>
+                    ds.HealthService)
+                .AsQueryable();
+
+
+        if (doctorId.HasValue)
+        {
+            query =
+                query.Where(ds =>
+                    ds.DoctorId ==
+                    doctorId.Value);
+        }
+
+
+        return query
+            .OrderBy(ds =>
+                ds.Doctor.LastName)
+            .ThenBy(ds =>
+                ds.HealthService.Name)
+            .ToList();
+    }
+
+
+    public void RemoveService(
+        int doctorId,
+        int healthServiceId)
+    {
+        var relation =
+            _db.DoctorServices
+                .FirstOrDefault(ds =>
+                    ds.DoctorId ==
+                        doctorId &&
+                    ds.HealthServiceId ==
+                        healthServiceId)
+            ?? throw new Exception("Doktor-hizmet bağlantısı bulunamadı.");
+
+
+        _db.DoctorServices.Remove(
+            relation);
+
+        _db.SaveChanges();
+    }
+
+
+    public List<DoctorSchedule>
+        GetSchedules(int? doctorId = null)
+    {
+        var query =
+            _db.DoctorSchedules
+                .Include(s =>
+                    s.Doctor)
+                .AsQueryable();
+
+
+        if (doctorId.HasValue)
+        {
+            query =
+                query.Where(s =>
+                    s.DoctorId ==
+                    doctorId.Value);
+        }
+
+
+        return query
+            .OrderBy(s =>
+                s.Doctor.LastName)
+            .ThenBy(s =>
+                s.DayOfWeek)
+            .ThenBy(s =>
+                s.StartTime)
+            .ToList();
+    }
+
+
+    public void UpdateSchedule(
+        int scheduleId,
+        DayOfWeek dayOfWeek,
+        TimeOnly startTime,
+        TimeOnly endTime)
+    {
+        if (startTime >= endTime)
+        {
+            throw new Exception("Başlangıç saati bitiş saatinden önce olmalıdır.");
+        }
+
+
+        var schedule =
+            _db.DoctorSchedules
+                .FirstOrDefault(s =>
+                    s.DoctorScheduleId ==
+                    scheduleId)
+            ?? throw new Exception("Çalışma saati bulunamadı.");
+
+
+        bool conflict =
+            _db.DoctorSchedules.Any(s =>
+                s.DoctorScheduleId !=
+                    scheduleId &&
+                s.DoctorId ==
+                    schedule.DoctorId &&
+                s.DayOfWeek ==
+                    dayOfWeek &&
+                startTime <
+                    s.EndTime &&
+                endTime >
+                    s.StartTime);
+
+
+        if (conflict)
+        {
+            throw new Exception("Bu çalışma saati mevcut bir programla çakışıyor.");
+        }
+
+
+        schedule.DayOfWeek =
+            dayOfWeek;
+
+        schedule.StartTime =
+            startTime;
+
+        schedule.EndTime =
+            endTime;
+
+
+        _db.SaveChanges();
+    }
+
+
+    public void DeleteSchedule(int scheduleId)
+    {
+        var schedule =
+            _db.DoctorSchedules
+                .FirstOrDefault(s =>
+                    s.DoctorScheduleId ==
+                    scheduleId)
+            ?? throw new Exception(
+                "Çalışma saati bulunamadı.");
+
+
+        _db.DoctorSchedules.Remove(
+            schedule);
+
+        _db.SaveChanges();
     }
 
 }

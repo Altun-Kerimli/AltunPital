@@ -39,7 +39,7 @@ public class BranchEditForm : Form
         TimeOnly.FromDateTime(
             dtOpening.Value);
 
-    public TimeOnly Closing =>
+    public TimeOnly ClosingTime =>
         TimeOnly.FromDateTime(
             dtClosing.Value);
 

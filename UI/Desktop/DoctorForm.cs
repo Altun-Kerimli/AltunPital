@@ -8,34 +8,19 @@ using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
 
+using Font = System.Drawing.Font;
+using Label = System.Windows.Forms.Label;
+
 namespace AltunPital.UI.Desktop;
 
-public class DoctorForm :
-    DesktopShellForm
+public class DoctorForm : DesktopShellForm
 {
     private readonly IDoctorService
         _doctorService;
 
-    private readonly DataGridView
-        grid =
-            new()
-            {
-                ReadOnly = true,
 
-                AllowUserToAddRows =
-                    false,
-
-                SelectionMode =
-                    DataGridViewSelectionMode
-                        .FullRowSelect,
-
-                AutoSizeColumnsMode =
-                    DataGridViewAutoSizeColumnsMode
-                        .Fill,
-
-                BackgroundColor =
-                    Color.White
-            };
+    private readonly DataGridView grid =
+        UiTableHelper.CreateGrid();
 
 
     public DoctorForm(
@@ -52,35 +37,185 @@ public class DoctorForm :
 
 
         AddSidebarButton(
-            "Randevularım",
+            "Ana Sayfa",
             160,
+            ShowHome);
+
+        AddSidebarButton(
+            "Randevularım",
+            210,
             ShowAppointments);
 
         AddSidebarButton(
             "Çalışma Programım",
-            210,
+            260,
             ShowSchedule);
 
         AddSidebarButton(
             "Profilim",
-            260,
+            310,
             OpenProfile);
 
         AddLogoutButton();
 
 
-        ShowAppointments();
+        ShowHome();
     }
 
+
+    // =====================================================
+    // ANA SAYFA
+    // =====================================================
+
+    private void ShowHome()
+    {
+        try
+        {
+            var doctor =
+                CurrentUser
+                    as Doctor;
+
+
+            var panel =
+                new Panel
+                {
+                    BackColor =
+                        Color.White,
+
+                    Padding =
+                        new Padding(30)
+                };
+
+
+            var title =
+                new Label
+                {
+                    Text =
+                        $"Dr. {CurrentUser.FirstName} " +
+                        $"{CurrentUser.LastName}",
+
+                    Font =
+                        new Font(
+                            "Segoe UI",
+                            22,
+                            FontStyle.Bold),
+
+                    AutoSize =
+                        true,
+
+                    Left =
+                        30,
+
+                    Top =
+                        30
+                };
+
+
+            panel.Controls.Add(
+                title);
+
+
+            int y =
+                95;
+
+
+            if (doctor != null)
+            {
+                AddInfoLine(
+                    panel,
+                    "Uzmanlık",
+                    doctor.Specialization,
+                    ref y);
+
+
+                AddInfoLine(
+                    panel,
+                    "Şube",
+                    doctor.Branch?.Name
+                    ?? "-",
+                    ref y);
+
+
+                AddInfoLine(
+                    panel,
+                    "Bölüm",
+                    doctor.Department?.Name
+                    ?? "-",
+                    ref y);
+            }
+
+
+            var appointments =
+                _doctorService
+                    .GetAppointments(
+                        CurrentUser.UserId);
+
+
+            int pending =
+                appointments.Count(a =>
+                    a.Status ==
+                    AppointmentStatus.Pending);
+
+
+            int approved =
+                appointments.Count(a =>
+                    a.Status ==
+                    AppointmentStatus.Approved);
+
+
+            var stats =
+                new Label
+                {
+                    Text =
+                        $"Bekleyen randevu: {pending}\n" +
+                        $"Onaylanmış randevu: {approved}",
+
+                    Font =
+                        new Font(
+                            "Segoe UI",
+                            11),
+
+                    AutoSize =
+                        true,
+
+                    Left =
+                        30,
+
+                    Top =
+                        y + 20
+                };
+
+
+            panel.Controls.Add(
+                stats);
+
+
+            ShowPage(
+                "Ana Sayfa",
+                panel);
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    // =====================================================
+    // RANDEVULAR
+    // =====================================================
 
     private void ShowAppointments()
     {
         var panel =
-            new Panel();
+            new Panel
+            {
+                BackColor =
+                    Color.White,
 
-
-        grid.Dock =
-            DockStyle.Fill;
+                Padding =
+                    new Padding(15)
+            };
 
 
         var buttons =
@@ -90,53 +225,88 @@ public class DoctorForm :
                     DockStyle.Bottom,
 
                 Height =
-                    70,
+                    65,
 
                 FlowDirection =
                     FlowDirection.LeftToRight,
 
                 Padding =
-                    new Padding(10)
+                    new Padding(
+                        5,
+                        10,
+                        5,
+                        5),
+
+                WrapContents =
+                    false,
+
+                BackColor =
+                    Color.White
             };
 
 
-        var approve =
+        var refreshButton =
             UiTheme.CreateButton(
-                "Onayla");
+                "Yenile",
+                120);
 
-        var reject =
+
+        var approveButton =
             UiTheme.CreateButton(
-                "Reddet");
+                "Onayla",
+                140);
 
-        var complete =
+
+        var rejectButton =
             UiTheme.CreateButton(
-                "Tamamla");
+                "Reddet",
+                140);
 
 
-        approve.Click +=
+        var completeButton =
+            UiTheme.CreateButton(
+                "Tamamla",
+                140);
+
+
+        refreshButton.Click +=
             (_, _) =>
-                ChangeStatus(
-                    "onayla");
+                LoadAppointments();
 
-        reject.Click +=
-            (_, _) =>
-                ChangeStatus(
-                    "reddet");
 
-        complete.Click +=
+        approveButton.Click +=
             (_, _) =>
-                ChangeStatus(
-                    "tamamla");
+                ChangeAppointmentStatus(
+                    AppointmentAction.Approve);
+
+
+        rejectButton.Click +=
+            (_, _) =>
+                ChangeAppointmentStatus(
+                    AppointmentAction.Reject);
+
+
+        completeButton.Click +=
+            (_, _) =>
+                ChangeAppointmentStatus(
+                    AppointmentAction.Complete);
 
 
         buttons.Controls.Add(
-            approve);
+            refreshButton);
 
         buttons.Controls.Add(
-            reject);
+            approveButton);
 
         buttons.Controls.Add(
-            complete);
+            rejectButton);
+
+        buttons.Controls.Add(
+            completeButton);
+
+
+        grid.Dock =
+            DockStyle.Fill;
 
 
         panel.Controls.Add(
@@ -161,7 +331,8 @@ public class DoctorForm :
             "appointments";
 
 
-        grid.DataSource =
+        UiTableHelper.Bind(
+            grid,
             _doctorService
                 .GetAppointments(
                     CurrentUser.UserId)
@@ -178,19 +349,37 @@ public class DoctorForm :
                             $"{a.Patient.FirstName} " +
                             $"{a.Patient.LastName}",
 
+                        Telefon =
+                            a.Patient.Phone,
+
+                        Şube =
+                            a.Branch.Name,
+
                         Hizmet =
                             a.HealthService.Name,
 
+                        Başlangıç =
+                            a.StartDateTime
+                                .ToString(
+                                    "HH:mm"),
+
+                        Bitiş =
+                            a.EndDateTime
+                                .ToString(
+                                    "HH:mm"),
+
                         Durum =
                             StatusText(
-                                a.Status)
-                    })
-                .ToList();
+                                a.Status),
+
+                        Fiyat =
+                            a.Price
+                    }));
     }
 
 
-    private void ChangeStatus(
-        string action)
+    private void ChangeAppointmentStatus(
+        AppointmentAction action)
     {
         try
         {
@@ -202,49 +391,82 @@ public class DoctorForm :
             }
 
 
-            if (grid.CurrentRow ==
-                null)
-            {
-                throw new Exception(
-                    "Bir randevu seçiniz.");
-            }
-
-
             int id =
-                Convert.ToInt32(
-                    grid.CurrentRow
-                        .Cells["ID"]
-                        .Value);
+                UiTableHelper
+                    .SelectedInt(
+                        grid,
+                        "ID");
+
+
+            string question =
+                action switch
+                {
+                    AppointmentAction.Approve =>
+                        "Seçili randevu onaylansın mı?",
+
+                    AppointmentAction.Reject =>
+                        "Seçili randevu reddedilsin mi?",
+
+                    AppointmentAction.Complete =>
+                        "Seçili randevu tamamlandı olarak işaretlensin mi?",
+
+                    _ =>
+                        "İşlem uygulansın mı?"
+                };
+
+
+            DialogResult confirm =
+                MessageBox.Show(
+                    question,
+                    "Randevu İşlemi",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+
+            if (confirm !=
+                DialogResult.Yes)
+            {
+                return;
+            }
 
 
             switch (action)
             {
-                case "onayla":
+                case AppointmentAction.Approve:
 
                     _doctorService
                         .ApproveAppointment(
                             CurrentUser.UserId,
                             id);
 
+                    ShowSuccess(
+                        "Randevu onaylandı.");
+
                     break;
 
 
-                case "reddet":
+                case AppointmentAction.Reject:
 
                     _doctorService
                         .RejectAppointment(
                             CurrentUser.UserId,
                             id);
 
+                    ShowSuccess(
+                        "Randevu reddedildi.");
+
                     break;
 
 
-                case "tamamla":
+                case AppointmentAction.Complete:
 
                     _doctorService
                         .CompleteAppointment(
                             CurrentUser.UserId,
                             id);
+
+                    ShowSuccess(
+                        "Randevu tamamlandı.");
 
                     break;
             }
@@ -259,35 +481,160 @@ public class DoctorForm :
     }
 
 
+    // =====================================================
+    // ÇALIŞMA PROGRAMI
+    // =====================================================
+
     private void ShowSchedule()
     {
-        grid.Tag =
-            "schedule";
+        try
+        {
+            grid.Tag =
+                "schedule";
 
 
-        grid.DataSource =
-            _doctorService
-                .GetSchedules(
-                    CurrentUser.UserId)
-                .Select(s =>
-                    new
-                    {
-                        Gun =
-                            DayText(
-                                s.DayOfWeek),
+            UiTableHelper.Bind(
+                grid,
+                _doctorService
+                    .GetSchedules(
+                        CurrentUser.UserId)
+                    .Select(s =>
+                        new
+                        {
+                            Gün =
+                                DayText(
+                                    s.DayOfWeek),
 
-                        Baslangic =
-                            s.StartTime,
+                            Başlangıç =
+                                s.StartTime,
 
-                        Bitis =
-                            s.EndTime
-                    })
-                .ToList();
+                            Bitiş =
+                                s.EndTime
+                        }));
 
 
-        ShowPage(
-            "Çalışma Programım",
-            grid);
+            var panel =
+                new Panel
+                {
+                    BackColor =
+                        Color.White,
+
+                    Padding =
+                        new Padding(15)
+                };
+
+
+            var info =
+                new Label
+                {
+                    Text =
+                        "Çalışma programınız yönetici tarafından belirlenmektedir.",
+
+                    Dock =
+                        DockStyle.Top,
+
+                    Height =
+                        45,
+
+                    ForeColor =
+                        UiTheme.Primary,
+
+                    Font =
+                        new Font(
+                            "Segoe UI",
+                            10,
+                            FontStyle.Bold),
+
+                    Padding =
+                        new Padding(
+                            5,
+                            10,
+                            5,
+                            5)
+                };
+
+
+            grid.Dock =
+                DockStyle.Fill;
+
+
+            panel.Controls.Add(
+                grid);
+
+            panel.Controls.Add(
+                info);
+
+
+            ShowPage(
+                "Çalışma Programım",
+                panel);
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex);
+        }
+    }
+
+
+    // =====================================================
+    // UI
+    // =====================================================
+
+    private static void AddInfoLine(
+        Control parent,
+        string title,
+        string value,
+        ref int y)
+    {
+        var titleLabel =
+            new Label
+            {
+                Text =
+                    $"{title}:",
+
+                Font =
+                    new Font(
+                        "Segoe UI",
+                        10,
+                        FontStyle.Bold),
+
+                AutoSize =
+                    true,
+
+                Left =
+                    30,
+
+                Top =
+                    y
+            };
+
+
+        var valueLabel =
+            new Label
+            {
+                Text =
+                    value,
+
+                AutoSize =
+                    true,
+
+                Left =
+                    150,
+
+                Top =
+                    y
+            };
+
+
+        parent.Controls.Add(
+            titleLabel);
+
+        parent.Controls.Add(
+            valueLabel);
+
+
+        y +=
+            35;
     }
 
 
@@ -346,5 +693,13 @@ public class DoctorForm :
             _ =>
                 "Bilinmiyor"
         };
+    }
+
+
+    private enum AppointmentAction
+    {
+        Approve,
+        Reject,
+        Complete
     }
 }
