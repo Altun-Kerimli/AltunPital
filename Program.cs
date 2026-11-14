@@ -1,4 +1,7 @@
-﻿using AltunPital.Data;
+﻿//Altun Karimli - Y255012015
+//https://github.com/Altun-Kerimli/AltunPital
+
+using AltunPital.Data;
 using AltunPital.Services;
 using AltunPital.UI.Desktop;
 using Microsoft.EntityFrameworkCore;
