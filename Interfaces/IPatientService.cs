@@ -14,18 +14,11 @@ public interface IPatientService
 
     List<Department> GetDepartments(int branchId);
 
-    List<Doctor> GetDoctors(
-        int branchId,
-        int? departmentId = null);
+    List<Doctor> GetDoctors(int branchId, int departmentId);
 
-    List<HealthService> GetServices(
-        int branchId,
-        int? doctorId = null);
+    List<HealthService> GetServices(int branchId, int doctorId);
 
-    List<DateTime> GetAvailableSlots(
-        int doctorId,
-        int healthServiceId,
-        DateOnly date);
+    List<DateTime> GetAvailableSlots(int doctorId, int healthServiceId, DateOnly date);
 
     Appointment CreateAppointment(
         int patientId,

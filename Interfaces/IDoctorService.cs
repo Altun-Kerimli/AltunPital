@@ -10,21 +10,17 @@ namespace AltunPital.Interfaces;
 
 public interface IDoctorService
 {
-    List<Appointment> GetAppointments(
-        int doctorId);
+    Doctor GetDoctor(int doctorId);
 
-    List<DoctorSchedule> GetSchedules(
-        int doctorId);
+    List<HealthService> GetServices(int doctorId);
 
-    void ApproveAppointment(
-        int doctorId,
-        int appointmentId);
+    List<Appointment> GetAppointments(int doctorId);
 
-    void RejectAppointment(
-        int doctorId,
-        int appointmentId);
+    List<DoctorSchedule> GetSchedules(int doctorId);
 
-    void CompleteAppointment(
-        int doctorId,
-        int appointmentId);
+    void ApproveAppointment(int doctorId, int appointmentId);
+
+    void RejectAppointment(int doctorId, int appointmentId);
+
+    void CompleteAppointment(int doctorId, int appointmentId);
 }

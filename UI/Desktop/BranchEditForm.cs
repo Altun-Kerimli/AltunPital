@@ -19,181 +19,82 @@ public class BranchEditForm : Form
     private readonly DateTimePicker dtOpening;
     private readonly DateTimePicker dtClosing;
 
+    public string BranchName => txtName.Text.Trim();
+    public string City => txtCity.Text.Trim();
+    public string District => txtDistrict.Text.Trim();
+    public string Address => txtAddress.Text.Trim();
+    public string Phone => txtPhone.Text.Trim();
 
-    public string BranchName =>
-        txtName.Text.Trim();
+    public TimeOnly Opening => TimeOnly.FromDateTime(dtOpening.Value);
+    public TimeOnly ClosingTime => TimeOnly.FromDateTime(dtClosing.Value);
 
-    public string City =>
-        txtCity.Text.Trim();
-
-    public string District =>
-        txtDistrict.Text.Trim();
-
-    public string Address =>
-        txtAddress.Text.Trim();
-
-    public string Phone =>
-        txtPhone.Text.Trim();
-
-    public TimeOnly Opening =>
-        TimeOnly.FromDateTime(
-            dtOpening.Value);
-
-    public TimeOnly ClosingTime =>
-        TimeOnly.FromDateTime(
-            dtClosing.Value);
-
-
-    public BranchEditForm(
-        Branch? branch = null)
+    public BranchEditForm(Branch? branch = null)
     {
-        Text =
-            branch == null
-                ? "Yeni Şube"
-                : "Şube Düzenle";
+        Text = branch == null ? "Yeni Şube" : "Şube Düzenle";
 
         Width = 500;
         Height = 570;
 
-        StartPosition =
-            FormStartPosition.CenterParent;
-
-        FormBorderStyle =
-            FormBorderStyle.FixedDialog;
+        StartPosition = FormStartPosition.CenterParent;
+        FormBorderStyle = FormBorderStyle.FixedDialog;
 
         MaximizeBox = false;
         MinimizeBox = false;
 
+        txtName = EntityFormHelpers.TextBox(130, 35);
+        txtCity = EntityFormHelpers.TextBox(130, 90);
+        txtDistrict = EntityFormHelpers.TextBox(130, 145);
+        txtAddress = EntityFormHelpers.TextBox(130, 200);
+        txtPhone = EntityFormHelpers.TextBox(130, 255);
 
-        txtName =
-            EntityFormHelpers.TextBox(
-                130,
-                35);
+        dtOpening = new DateTimePicker
+        {
+            Left = 130,
+            Top = 310,
+            Width = 150,
+            Format = DateTimePickerFormat.Time,
+            ShowUpDown = true
+        };
 
-        txtCity =
-            EntityFormHelpers.TextBox(
-                130,
-                90);
-
-        txtDistrict =
-            EntityFormHelpers.TextBox(
-                130,
-                145);
-
-        txtAddress =
-            EntityFormHelpers.TextBox(
-                130,
-                200);
-
-        txtPhone =
-            EntityFormHelpers.TextBox(
-                130,
-                255);
-
-
-        dtOpening =
-            new DateTimePicker
-            {
-                Left = 130,
-                Top = 310,
-                Width = 150,
-                Format =
-                    DateTimePickerFormat.Time,
-                ShowUpDown = true
-            };
-
-        dtClosing =
-            new DateTimePicker
-            {
-                Left = 130,
-                Top = 365,
-                Width = 150,
-                Format =
-                    DateTimePickerFormat.Time,
-                ShowUpDown = true
-            };
-
+        dtClosing = new DateTimePicker
+        {
+            Left = 130,
+            Top = 365,
+            Width = 150,
+            Format = DateTimePickerFormat.Time,
+            ShowUpDown = true
+        };
 
         Controls.AddRange(
         [
-            EntityFormHelpers.Label(
-                "Şube Adı",
-                25,
-                38),
-
+            EntityFormHelpers.Label("Şube Adı", 25, 38),
             txtName,
-
-            EntityFormHelpers.Label(
-                "Şehir",
-                25,
-                93),
-
+            EntityFormHelpers.Label("Şehir", 25, 93),
             txtCity,
-
-            EntityFormHelpers.Label(
-                "İlçe",
-                25,
-                148),
-
+            EntityFormHelpers.Label("İlçe", 25, 148),
             txtDistrict,
-
-            EntityFormHelpers.Label(
-                "Adres",
-                25,
-                203),
-
+            EntityFormHelpers.Label("Adres", 25, 203),
             txtAddress,
-
-            EntityFormHelpers.Label(
-                "Telefon",
-                25,
-                258),
-
+            EntityFormHelpers.Label("Telefon", 25, 258),
             txtPhone,
-
-            EntityFormHelpers.Label(
-                "Açılış",
-                25,
-                313),
-
+            EntityFormHelpers.Label("Açılış", 25, 313),
             dtOpening,
-
-            EntityFormHelpers.Label(
-                "Kapanış",
-                25,
-                368),
-
+            EntityFormHelpers.Label("Kapanış", 25, 368),
             dtClosing
         ]);
 
+        var save = EntityFormHelpers.SaveButton(235, 435);
+        var cancel = EntityFormHelpers.CancelButton(355, 435);
 
-        var save =
-            EntityFormHelpers.SaveButton(
-                235,
-                435);
-
-        var cancel =
-            EntityFormHelpers.CancelButton(
-                355,
-                435);
-
-
-        save.Click +=
-            (_, _) =>
+        save.Click += (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(txtName.Text) ||
+                string.IsNullOrWhiteSpace(txtCity.Text))
             {
-                if (string.IsNullOrWhiteSpace(
-                        txtName.Text) ||
-                    string.IsNullOrWhiteSpace(
-                        txtCity.Text))
-                {
-                    MessageBox.Show(
-                        "Şube adı ve şehir zorunludur.");
-
-                    DialogResult =
-                        DialogResult.None;
-                }
-            };
-
+                MessageBox.Show("Şube adı ve şehir zorunludur.");
+                DialogResult = DialogResult.None;
+            }
+        };
 
         Controls.Add(save);
         Controls.Add(cancel);
@@ -201,39 +102,21 @@ public class BranchEditForm : Form
         AcceptButton = save;
         CancelButton = cancel;
 
-
         if (branch != null)
         {
-            txtName.Text =
-                branch.Name;
+            txtName.Text = branch.Name;
+            txtCity.Text = branch.City;
+            txtDistrict.Text = branch.District;
+            txtAddress.Text = branch.Address;
+            txtPhone.Text = branch.Phone;
 
-            txtCity.Text =
-                branch.City;
-
-            txtDistrict.Text =
-                branch.District;
-
-            txtAddress.Text =
-                branch.Address;
-
-            txtPhone.Text =
-                branch.Phone;
-
-            dtOpening.Value =
-                DateTime.Today.Add(
-                    branch.OpeningTime.ToTimeSpan());
-
-            dtClosing.Value =
-                DateTime.Today.Add(
-                    branch.ClosingTime.ToTimeSpan());
+            dtOpening.Value = DateTime.Today.Add(branch.OpeningTime.ToTimeSpan());
+            dtClosing.Value = DateTime.Today.Add(branch.ClosingTime.ToTimeSpan());
         }
         else
         {
-            dtOpening.Value =
-                DateTime.Today.AddHours(8);
-
-            dtClosing.Value =
-                DateTime.Today.AddHours(18);
+            dtOpening.Value = DateTime.Today.AddHours(8);
+            dtClosing.Value = DateTime.Today.AddHours(18);
         }
     }
 }

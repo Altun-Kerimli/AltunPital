@@ -16,8 +16,7 @@ public static class PasswordHasher
 
     public static string HashPassword(string password)
     {
-        byte[] salt =
-            RandomNumberGenerator.GetBytes(SaltSize);
+        byte[] salt = RandomNumberGenerator.GetBytes(SaltSize);
 
         byte[] hash = Rfc2898DeriveBytes.Pbkdf2(
             password,
@@ -26,50 +25,33 @@ public static class PasswordHasher
             HashAlgorithmName.SHA256,
             HashSize);
 
-        return
-            $"PBKDF2${Iterations}$" +
+        return $"PBKDF2${Iterations}$" +
             $"{Convert.ToBase64String(salt)}$" +
             $"{Convert.ToBase64String(hash)}";
     }
 
-    public static bool VerifyPassword(
-        string password,
-        string storedHash)
+    public static bool VerifyPassword(string password, string storedHash)
     {
         if (!IsHashed(storedHash))
             return false;
 
-        string[] parts =
-            storedHash.Split('$');
+        string[] parts = storedHash.Split('$');
+        int iterations = int.Parse(parts[1]);
+        byte[] salt = Convert.FromBase64String(parts[2]);
+        byte[] expectedHash = Convert.FromBase64String(parts[3]);
 
-        int iterations =
-            int.Parse(parts[1]);
+        byte[] actualHash = Rfc2898DeriveBytes.Pbkdf2(
+            password,
+            salt,
+            iterations,
+            HashAlgorithmName.SHA256,
+            expectedHash.Length);
 
-        byte[] salt =
-            Convert.FromBase64String(parts[2]);
-
-        byte[] expectedHash =
-            Convert.FromBase64String(parts[3]);
-
-        byte[] actualHash =
-            Rfc2898DeriveBytes.Pbkdf2(
-                password,
-                salt,
-                iterations,
-                HashAlgorithmName.SHA256,
-                expectedHash.Length);
-
-        return CryptographicOperations
-            .FixedTimeEquals(
-                actualHash,
-                expectedHash);
+        return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
     }
 
-    public static bool IsHashed(
-        string value)
+    public static bool IsHashed(string value)
     {
-        return value.StartsWith(
-            "PBKDF2$",
-            StringComparison.Ordinal);
+        return value.StartsWith("PBKDF2$", StringComparison.Ordinal);
     }
 }

@@ -12,15 +12,7 @@ public interface IUserAccountService
 {
     User GetUser(int userId);
 
-    void UpdateProfile(
-        int userId,
-        string firstName,
-        string lastName,
-        string email,
-        string phone);
+    void UpdateProfile(int userId, string firstName, string lastName, string email, string phone);
 
-    void ChangePassword(
-        int userId,
-        string currentPassword,
-        string newPassword);
+    void ChangePassword(int userId, string currentPassword, string newPassword);
 }

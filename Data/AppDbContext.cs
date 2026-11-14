@@ -32,72 +32,32 @@ public class AppDbContext : DbContext
 
     public DbSet<Appointment> Appointments => Set<Appointment>();
 
-    protected override void OnConfiguring(
-        DbContextOptionsBuilder optionsBuilder)
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite(
-            "Data Source=altunpital.db"
-        );
+        optionsBuilder.UseSqlite("Data Source=altunpital.db");
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        /*
-         * USER INHERITANCE
-         *
-         * TPT:
-         * User
-         * ├── Patient
-         * └── Employee
-         *     ├── Doctor
-         *     ├── HealthStaff
-         *     └── Manager
-         */
-
-        modelBuilder.Entity<User>()
-            .ToTable("Users");
-
-        modelBuilder.Entity<Patient>()
-            .ToTable("Patients");
-
-        modelBuilder.Entity<Employee>()
-            .ToTable("Employees");
-
-        modelBuilder.Entity<Doctor>()
-            .ToTable("Doctors");
-
-        modelBuilder.Entity<HealthStaff>()
-            .ToTable("HealthStaff");
-
-        modelBuilder.Entity<Manager>()
-            .ToTable("Managers");
-
-
-        // --------------------
-        // HOSPITAL -> BRANCH
-        // --------------------
+        // Kullanıcı tipleri ayrı tablolarda (TPT)
+        modelBuilder.Entity<User>().ToTable("Users");
+        modelBuilder.Entity<Patient>().ToTable("Patients");
+        modelBuilder.Entity<Employee>().ToTable("Employees");
+        modelBuilder.Entity<Doctor>().ToTable("Doctors");
+        modelBuilder.Entity<HealthStaff>().ToTable("HealthStaff");
+        modelBuilder.Entity<Manager>().ToTable("Managers");
 
         modelBuilder.Entity<Hospital>()
             .HasMany(h => h.Branches)
             .WithOne(b => b.Hospital)
             .HasForeignKey(b => b.HospitalId);
 
-
-        // --------------------
-        // BRANCH -> DEPARTMENT
-        // --------------------
-
         modelBuilder.Entity<Branch>()
             .HasMany(b => b.Departments)
             .WithOne(d => d.Branch)
             .HasForeignKey(d => d.BranchId);
-
-
-        // --------------------
-        // EMPLOYEE -> BRANCH
-        // --------------------
 
         modelBuilder.Entity<Employee>()
             .HasOne(e => e.Branch)
@@ -105,28 +65,14 @@ public class AppDbContext : DbContext
             .HasForeignKey(e => e.BranchId)
             .OnDelete(DeleteBehavior.Restrict);
 
-
-        // --------------------
-        // EMPLOYEE -> DEPARTMENT
-        // --------------------
-
         modelBuilder.Entity<Employee>()
             .HasOne(e => e.Department)
             .WithMany(d => d.Employees)
             .HasForeignKey(e => e.DepartmentId)
             .OnDelete(DeleteBehavior.Restrict);
 
-
-        // --------------------
-        // BRANCH SERVICE
-        // --------------------
-
         modelBuilder.Entity<BranchService>()
-            .HasKey(bs => new
-            {
-                bs.BranchId,
-                bs.HealthServiceId
-            });
+            .HasKey(bs => new { bs.BranchId, bs.HealthServiceId });
 
         modelBuilder.Entity<BranchService>()
             .HasOne(bs => bs.Branch)
@@ -138,17 +84,8 @@ public class AppDbContext : DbContext
             .WithMany(s => s.BranchServices)
             .HasForeignKey(bs => bs.HealthServiceId);
 
-
-        // --------------------
-        // BRANCH EQUIPMENT
-        // --------------------
-
         modelBuilder.Entity<BranchEquipment>()
-            .HasKey(be => new
-            {
-                be.BranchId,
-                be.EquipmentId
-            });
+            .HasKey(be => new { be.BranchId, be.EquipmentId });
 
         modelBuilder.Entity<BranchEquipment>()
             .HasOne(be => be.Branch)
@@ -160,17 +97,8 @@ public class AppDbContext : DbContext
             .WithMany(e => e.BranchEquipments)
             .HasForeignKey(be => be.EquipmentId);
 
-
-        // --------------------
-        // DOCTOR SERVICES
-        // --------------------
-
         modelBuilder.Entity<DoctorService>()
-            .HasKey(ds => new
-            {
-                ds.DoctorId,
-                ds.HealthServiceId
-            });
+            .HasKey(ds => new { ds.DoctorId, ds.HealthServiceId });
 
         modelBuilder.Entity<DoctorService>()
             .HasOne(ds => ds.Doctor)
@@ -182,20 +110,10 @@ public class AppDbContext : DbContext
             .WithMany(s => s.DoctorServices)
             .HasForeignKey(ds => ds.HealthServiceId);
 
-
-        // --------------------
-        // DOCTOR SCHEDULE
-        // --------------------
-
         modelBuilder.Entity<DoctorSchedule>()
             .HasOne(s => s.Doctor)
             .WithMany(d => d.Schedules)
             .HasForeignKey(s => s.DoctorId);
-
-
-        // --------------------
-        // APPOINTMENT
-        // --------------------
 
         modelBuilder.Entity<Appointment>()
             .HasOne(a => a.Patient)
@@ -221,15 +139,10 @@ public class AppDbContext : DbContext
             .HasForeignKey(a => a.HealthServiceId)
             .OnDelete(DeleteBehavior.Restrict);
 
-
-        // Enum DB'de okunabilir olsun.
-
+        // Enum'u metin olarak tutuyoruz
         modelBuilder.Entity<Appointment>()
             .Property(a => a.Status)
             .HasConversion<string>();
-
-
-        // SQLite decimal precision
 
         modelBuilder.Entity<BranchService>()
             .Property(bs => bs.Price)

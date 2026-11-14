@@ -10,13 +10,7 @@ namespace AltunPital.Interfaces;
 
 public interface IScheduleService
 {
-    bool IsDoctorAvailable(
-        int doctorId,
-        DateTime startDateTime,
-        int durationMinutes);
+    bool IsDoctorAvailable(int doctorId, DateTime startDateTime, int durationMinutes);
 
-    List<DateTime> GetAvailableSlots(
-        int doctorId,
-        int healthServiceId,
-        DateOnly date);
+    List<DateTime> GetAvailableSlots(int doctorId, int healthServiceId, DateOnly date);
 }

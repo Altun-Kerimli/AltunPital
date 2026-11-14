@@ -22,7 +22,6 @@ public interface IEmployeeService
         int departmentId,
         string specialization);
 
-
     HealthStaff AddHealthStaff(
         string firstName,
         string lastName,
@@ -47,7 +46,6 @@ public interface IEmployeeService
         int departmentId,
         string specialization);
 
-
     void UpdateHealthStaff(
         int staffId,
         string firstName,
@@ -60,49 +58,21 @@ public interface IEmployeeService
         int? departmentId,
         string position);
 
+    void AssignService(int doctorId, int healthServiceId);
 
-    void AssignService(
-        int doctorId,
-        int healthServiceId);
+    void RemoveService(int doctorId, int healthServiceId);
 
+    List<AltunPital.Data.DoctorService> GetDoctorServices(int? doctorId = null);
 
-    void RemoveService(
-        int doctorId,
-        int healthServiceId);
+    DoctorSchedule AddSchedule(int doctorId, DayOfWeek dayOfWeek, TimeOnly startTime, TimeOnly endTime);
 
+    void UpdateSchedule(int scheduleId, DayOfWeek dayOfWeek, TimeOnly startTime, TimeOnly endTime);
 
-    List<AltunPital.Data.DoctorService>
-        GetDoctorServices(
-            int? doctorId = null);
+    void DeleteSchedule(int scheduleId);
 
+    List<DoctorSchedule> GetSchedules(int? doctorId = null);
 
-    DoctorSchedule AddSchedule(
-        int doctorId,
-        DayOfWeek dayOfWeek,
-        TimeOnly startTime,
-        TimeOnly endTime);
+    List<Employee> GetEmployees(int? branchId = null);
 
-
-    void UpdateSchedule(
-        int scheduleId,
-        DayOfWeek dayOfWeek,
-        TimeOnly startTime,
-        TimeOnly endTime);
-
-
-    void DeleteSchedule(
-        int scheduleId);
-
-
-    List<DoctorSchedule>
-        GetSchedules(
-            int? doctorId = null);
-
-
-    List<Employee> GetEmployees(
-        int? branchId = null);
-
-
-    void DeleteEmployee(
-        int employeeId);
+    void DeleteEmployee(int employeeId);
 }

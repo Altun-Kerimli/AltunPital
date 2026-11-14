@@ -15,14 +15,11 @@ public class AppointmentService : IAppointmentService
     private readonly AppDbContext _db;
     private readonly IScheduleService _scheduleService;
 
-    public AppointmentService(
-        AppDbContext db,
-        IScheduleService scheduleService)
+    public AppointmentService(AppDbContext db, IScheduleService scheduleService)
     {
         _db = db;
         _scheduleService = scheduleService;
     }
-
 
     public Appointment CreateAppointment(
         int patientId,
@@ -31,72 +28,47 @@ public class AppointmentService : IAppointmentService
         int healthServiceId,
         DateTime startDateTime)
     {
-        var patient = _db.Patients
-            .FirstOrDefault(p =>
-                p.UserId == patientId);
+        var patient = _db.Patients.FirstOrDefault(p => p.UserId == patientId);
 
         if (patient == null)
             throw new Exception("Hasta bulunamadı.");
 
-
         var doctor = _db.Doctors
             .Include(d => d.DoctorServices)
-            .FirstOrDefault(d =>
-                d.UserId == doctorId);
+            .FirstOrDefault(d => d.UserId == doctorId);
 
         if (doctor == null)
             throw new Exception("Doktor bulunamadı.");
 
-
         if (doctor.BranchId != branchId)
-            throw new Exception(
-                "Doktor seçilen şubede çalışmıyor."
-            );
-
+            throw new Exception("Doktor seçilen şubede çalışmıyor.");
 
         var service = _db.HealthServices
-            .FirstOrDefault(s =>
-                s.HealthServiceId == healthServiceId);
+            .FirstOrDefault(s => s.HealthServiceId == healthServiceId);
 
         if (service == null)
             throw new Exception("Hizmet bulunamadı.");
 
-
-        bool doctorProvidesService =
-            doctor.DoctorServices.Any(ds =>
-                ds.HealthServiceId == healthServiceId);
+        bool doctorProvidesService = doctor.DoctorServices
+            .Any(ds => ds.HealthServiceId == healthServiceId);
 
         if (!doctorProvidesService)
-            throw new Exception(
-                "Doktor seçilen hizmeti vermiyor."
-            );
+            throw new Exception("Doktor seçilen hizmeti vermiyor.");
 
+        var branchService = _db.BranchServices.FirstOrDefault(bs =>
+            bs.BranchId == branchId &&
+            bs.HealthServiceId == healthServiceId);
 
-        var branchService = _db.BranchServices
-            .FirstOrDefault(bs =>
-                bs.BranchId == branchId &&
-                bs.HealthServiceId == healthServiceId);
+        if (branchService == null || !branchService.IsAvailable)
+            throw new Exception("Bu hizmet seçilen şubede mevcut değil.");
 
-        if (branchService == null ||
-            !branchService.IsAvailable)
-        {
-            throw new Exception(
-                "Bu hizmet seçilen şubede mevcut değil."
-            );
-        }
-
-
-        bool available =
-            _scheduleService.IsDoctorAvailable(
-                doctorId,
-                startDateTime,
-                service.DurationMinutes);
+        bool available = _scheduleService.IsDoctorAvailable(
+            doctorId,
+            startDateTime,
+            service.DurationMinutes);
 
         if (!available)
-            throw new Exception(
-                "Doktor seçilen tarih ve saatte uygun değil."
-            );
-
+            throw new Exception("Doktor seçilen tarih ve saatte uygun değil.");
 
         var appointment = new Appointment
         {
@@ -104,113 +76,75 @@ public class AppointmentService : IAppointmentService
             DoctorId = doctorId,
             BranchId = branchId,
             HealthServiceId = healthServiceId,
-
             StartDateTime = startDateTime,
-
-            EndDateTime =
-                startDateTime.AddMinutes(
-                    service.DurationMinutes),
-
-            // O anki fiyatı saklıyoruz.
-            Price = branchService.Price,
-
+            EndDateTime = startDateTime.AddMinutes(service.DurationMinutes),
+            Price = branchService.Price, // randevu anındaki fiyat
             Status = AppointmentStatus.Pending,
-
             CreatedAt = DateTime.Now
         };
 
-
         _db.Appointments.Add(appointment);
-
         _db.SaveChanges();
 
         return appointment;
     }
 
-
     public void ApproveAppointment(int appointmentId)
     {
-        var appointment =
-            _db.Appointments.Find(appointmentId);
+        var appointment = _db.Appointments.Find(appointmentId);
 
         if (appointment == null)
             throw new Exception("Randevu bulunamadı.");
 
         if (appointment.Status != AppointmentStatus.Pending)
-            throw new Exception(
-                "Sadece bekleyen randevular onaylanabilir."
-            );
+            throw new Exception("Sadece bekleyen randevular onaylanabilir.");
 
-        appointment.Status =
-            AppointmentStatus.Approved;
-
+        appointment.Status = AppointmentStatus.Approved;
         _db.SaveChanges();
     }
 
-
     public void CancelAppointment(int appointmentId)
     {
-        var appointment =
-            _db.Appointments.Find(appointmentId);
+        var appointment = _db.Appointments.Find(appointmentId);
 
         if (appointment == null)
             throw new Exception("Randevu bulunamadı.");
 
         if (appointment.Status == AppointmentStatus.Completed)
-            throw new Exception(
-                "Tamamlanmış randevu iptal edilemez."
-            );
+            throw new Exception("Tamamlanmış randevu iptal edilemez.");
 
         if (appointment.Status == AppointmentStatus.Rejected)
-            throw new Exception(
-                "Reddedilmiş randevu iptal edilemez."
-            );
+            throw new Exception("Reddedilmiş randevu iptal edilemez.");
 
         if (appointment.Status == AppointmentStatus.Cancelled)
-            throw new Exception(
-                "Randevu zaten iptal edilmiş."
-            );
+            throw new Exception("Randevu zaten iptal edilmiş.");
 
-        appointment.Status =
-            AppointmentStatus.Cancelled;
-
+        appointment.Status = AppointmentStatus.Cancelled;
         _db.SaveChanges();
     }
 
-
-    public List<Appointment> GetPatientAppointments(
-        int patientId)
+    public List<Appointment> GetPatientAppointments(int patientId)
     {
         return _db.Appointments
             .Include(a => a.Doctor)
             .Include(a => a.Branch)
             .Include(a => a.HealthService)
-
-            .Where(a =>
-                a.PatientId == patientId)
-
-            .OrderBy(a =>
-                a.StartDateTime)
-
+            .Where(a => a.PatientId == patientId)
+            .OrderBy(a => a.StartDateTime)
             .ToList();
     }
 
     public void RejectAppointment(int appointmentId)
     {
-        var appointment =
-            _db.Appointments.Find(appointmentId);
+        var appointment = _db.Appointments.Find(appointmentId);
 
         if (appointment == null)
             throw new Exception("Randevu bulunamadı.");
 
         if (appointment.Status != AppointmentStatus.Pending)
-            throw new Exception(
-                "Sadece bekleyen randevular reddedilebilir."
-            );
+            throw new Exception("Sadece bekleyen randevular reddedilebilir.");
 
-        appointment.Status =
-            AppointmentStatus.Rejected;
-
+        appointment.Status = AppointmentStatus.Rejected;
         _db.SaveChanges();
     }
 
@@ -221,14 +155,8 @@ public class AppointmentService : IAppointmentService
             .Include(a => a.Doctor)
             .Include(a => a.Branch)
             .Include(a => a.HealthService)
-
-            .Where(a =>
-                a.Status == AppointmentStatus.Pending)
-
-            .OrderBy(a =>
-                a.StartDateTime)
-
+            .Where(a => a.Status == AppointmentStatus.Pending)
+            .OrderBy(a => a.StartDateTime)
             .ToList();
     }
 }
-

@@ -14,146 +14,66 @@ public class UserAccountService : IUserAccountService
 {
     private readonly AppDbContext _db;
 
-    public UserAccountService(
-        AppDbContext db)
+    public UserAccountService(AppDbContext db)
     {
         _db = db;
     }
 
-
-    public User GetUser(
-        int userId)
+    public User GetUser(int userId)
     {
-        return _db.Users
-            .FirstOrDefault(u =>
-                u.UserId == userId)
-            ?? throw new Exception(
-                "Kullanıcı bulunamadı.");
+        return _db.Users.FirstOrDefault(u => u.UserId == userId)
+            ?? throw new Exception("Kullanıcı bulunamadı.");
     }
 
-
-    public void UpdateProfile(
-        int userId,
-        string firstName,
-        string lastName,
-        string email,
-        string phone)
+    public void UpdateProfile(int userId, string firstName, string lastName, string email, string phone)
     {
-        var user =
-            GetUser(userId);
+        var user = GetUser(userId);
 
-        firstName =
-            firstName.Trim();
+        firstName = firstName.Trim();
+        lastName = lastName.Trim();
+        email = email.Trim().ToLowerInvariant();
+        phone = phone.Trim();
 
-        lastName =
-            lastName.Trim();
+        if (string.IsNullOrWhiteSpace(firstName))
+            throw new Exception("Ad boş bırakılamaz.");
 
-        email =
-            email.Trim()
-                .ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(lastName))
+            throw new Exception("Soyad boş bırakılamaz.");
 
-        phone =
-            phone.Trim();
+        if (string.IsNullOrWhiteSpace(email))
+            throw new Exception("E-posta boş bırakılamaz.");
 
-
-        if (string.IsNullOrWhiteSpace(
-                firstName))
-        {
-            throw new Exception(
-                "Ad boş bırakılamaz.");
-        }
-
-        if (string.IsNullOrWhiteSpace(
-                lastName))
-        {
-            throw new Exception(
-                "Soyad boş bırakılamaz.");
-        }
-
-        if (string.IsNullOrWhiteSpace(
-                email))
-        {
-            throw new Exception(
-                "E-posta boş bırakılamaz.");
-        }
-
-
-        bool emailExists =
-            _db.Users.Any(u =>
-                u.UserId != userId &&
-                u.Email == email);
+        bool emailExists = _db.Users.Any(u => u.UserId != userId && u.Email == email);
 
         if (emailExists)
-        {
-            throw new Exception(
-                "Bu e-posta başka bir kullanıcı tarafından kullanılıyor.");
-        }
+            throw new Exception("Bu e-posta başka bir kullanıcı tarafından kullanılıyor.");
 
-
-        user.FirstName =
-            firstName;
-
-        user.LastName =
-            lastName;
-
-        user.Email =
-            email;
-
-        user.Phone =
-            phone;
-
+        user.FirstName = firstName;
+        user.LastName = lastName;
+        user.Email = email;
+        user.Phone = phone;
 
         _db.SaveChanges();
     }
 
-
-    public void ChangePassword(
-        int userId,
-        string currentPassword,
-        string newPassword)
+    public void ChangePassword(int userId, string currentPassword, string newPassword)
     {
-        var user =
-            GetUser(userId);
+        var user = GetUser(userId);
 
-
-        if (string.IsNullOrWhiteSpace(
-                newPassword) ||
-            newPassword.Length < 6)
-        {
-            throw new Exception(
-                "Yeni şifre en az 6 karakter olmalıdır.");
-        }
-
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            throw new Exception("Yeni şifre en az 6 karakter olmalıdır.");
 
         bool currentPasswordCorrect;
 
-        if (PasswordHasher.IsHashed(
-                user.PasswordHash))
-        {
-            currentPasswordCorrect =
-                PasswordHasher.VerifyPassword(
-                    currentPassword,
-                    user.PasswordHash);
-        }
+        if (PasswordHasher.IsHashed(user.PasswordHash))
+            currentPasswordCorrect = PasswordHasher.VerifyPassword(currentPassword, user.PasswordHash);
         else
-        {
-            currentPasswordCorrect =
-                user.PasswordHash ==
-                currentPassword;
-        }
-
+            currentPasswordCorrect = user.PasswordHash == currentPassword;
 
         if (!currentPasswordCorrect)
-        {
-            throw new Exception(
-                "Mevcut şifre yanlış.");
-        }
+            throw new Exception("Mevcut şifre yanlış.");
 
-
-        user.PasswordHash =
-            PasswordHasher.HashPassword(
-                newPassword);
-
+        user.PasswordHash = PasswordHasher.HashPassword(newPassword);
         _db.SaveChanges();
     }
 }

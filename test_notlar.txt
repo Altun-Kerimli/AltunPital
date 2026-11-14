@@ -1,0 +1,48 @@
+#Yönetici
+manager@altunpital.com
+asdf1234!
+
+#Her doktor
+selin.yalcin@altunpital.com
+kendi benzersiz e-postası
+doktor123
+
+#Her personel
+kaan.ates@altunpital.com
+seda.balci@altunpital.com	
+ayse.koc@altunpital.com
+
+kendi benzersiz e-postası
+personel123
+
+#Her hasta
+memet.bey.test@gmail.com
+mert.aksoy.aksaray@example.com
+
+hasta123
+
+Hasta:
+	ali@test.com
+	hasta123
+	
+	
+	
+Remove-Item .\altunpital.db
+dotnet ef database update
+dotnet run
+
+
+
+	
+Mert Aksoy/ Aksaray/ Ahmet Y./ Kardiyoloji/ 16 nov 2026 10:00/ Ran no 13
+	
+Mert Aksoy/ Izmir/ Eylul A./ Ortopedi/ 18 nov 2026 11:00/ Ran no 14
+
+
+
+
+ahmet.yilmaz.aksaray@altunpital.com	
+
+eylul.aksoy@altunpital.com
+
+alper.kose@altunpital.com

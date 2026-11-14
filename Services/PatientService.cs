@@ -14,144 +14,164 @@ public class PatientService : IPatientService
 {
     private readonly AppDbContext _db;
 
-    private readonly IAppointmentService
-        _appointmentService;
-
-    private readonly IScheduleService
-        _scheduleService;
-
-
-    public PatientService(
-        AppDbContext db,
-        IAppointmentService appointmentService,
-        IScheduleService scheduleService)
+    public PatientService(AppDbContext db, params object[] unusedDependencies)
     {
         _db = db;
-
-        _appointmentService =
-            appointmentService;
-
-        _scheduleService =
-            scheduleService;
     }
-
 
     public List<Branch> GetBranches(string? preferredCity = null)
     {
-        var query =
-            _db.Branches
-                .AsQueryable();
+        var branches = _db.Branches
+            .OrderBy(b => b.BranchId)
+            .ToList();
 
-        if (string.IsNullOrWhiteSpace(
-                preferredCity))
+        if (string.IsNullOrWhiteSpace(preferredCity))
         {
-            return query
-                .OrderBy(b => b.City)
-                .ThenBy(b => b.Name)
-                .ToList();
+            return branches;
         }
 
-        string city =
-            preferredCity.Trim();
+        string city = preferredCity.Trim();
 
-        return query
+        // Tercih edilen şehri üste al
+        return branches
             .OrderByDescending(b =>
-                b.City.ToLower() ==
-                city.ToLower())
+                string.Equals(b.City, city, StringComparison.OrdinalIgnoreCase))
             .ThenBy(b => b.City)
-            .ThenBy(b => b.Name)
+            .ThenBy(b => b.BranchId)
             .ToList();
     }
 
-
-    public List<Department> GetDepartments(
-        int branchId)
+    public List<Department> GetDepartments(int branchId)
     {
         return _db.Departments
-            .Where(d =>
-                d.BranchId == branchId)
-
-            .OrderBy(d => d.Name)
-
+            .Where(d => d.BranchId == branchId)
+            .OrderBy(d => d.DepartmentId)
             .ToList();
     }
 
-
-    public List<Doctor> GetDoctors(
-        int branchId,
-        int? departmentId = null)
+    public List<Doctor> GetDoctors(int branchId, int departmentId)
     {
-        var query =
-            _db.Doctors
-                .Include(d => d.Department)
-                .Where(d =>
-                    d.BranchId == branchId);
+        // Şubede açık hizmeti olan doktorlar
+        HashSet<int> activeServiceIds = _db.BranchServices
+            .Where(bs => bs.BranchId == branchId && bs.IsAvailable)
+            .Select(bs => bs.HealthServiceId)
+            .ToHashSet();
 
-        if (departmentId.HasValue)
-        {
-            query = query.Where(d =>
-                d.DepartmentId ==
-                departmentId.Value);
-        }
-
-        return query
-            .OrderBy(d => d.FirstName)
-            .ThenBy(d => d.LastName)
+        return _db.Doctors
+            .Include(d => d.Branch)
+            .Include(d => d.Department)
+            .Include(d => d.DoctorServices)
+            .Where(d => d.BranchId == branchId && d.DepartmentId == departmentId)
+            .AsEnumerable()
+            .Where(d => d.DoctorServices.Any(ds => activeServiceIds.Contains(ds.HealthServiceId)))
+            .OrderBy(d => d.UserId)
             .ToList();
     }
 
-
-    public List<HealthService> GetServices(
-        int branchId,
-        int? doctorId = null)
+    public List<HealthService> GetServices(int branchId, int doctorId)
     {
-        var query =
-            _db.BranchServices
-                .Include(bs =>
-                    bs.HealthService)
+        HashSet<int> doctorServiceIds = _db.DoctorServices
+            .Where(ds => ds.DoctorId == doctorId)
+            .Select(ds => ds.HealthServiceId)
+            .ToHashSet();
 
-                .Where(bs =>
-                    bs.BranchId == branchId &&
-                    bs.IsAvailable);
+        List<int> activeServiceIds = _db.BranchServices
+            .Where(bs =>
+                bs.BranchId == branchId &&
+                bs.IsAvailable &&
+                doctorServiceIds.Contains(bs.HealthServiceId))
+            .Select(bs => bs.HealthServiceId)
+            .ToList();
 
+        return _db.HealthServices
+            .Where(s => activeServiceIds.Contains(s.HealthServiceId))
+            .OrderBy(s => s.HealthServiceId)
+            .ToList();
+    }
 
-        if (doctorId.HasValue)
+    public List<DateTime> GetAvailableSlots(int doctorId, int healthServiceId, DateOnly date)
+    {
+        Doctor doctor = _db.Doctors.FirstOrDefault(d => d.UserId == doctorId)
+            ?? throw new Exception("Doktor bulunamadı.");
+
+        HealthService service = _db.HealthServices.FirstOrDefault(s => s.HealthServiceId == healthServiceId)
+            ?? throw new Exception("Hizmet bulunamadı.");
+
+        bool doctorOffersService = _db.DoctorServices.Any(ds =>
+            ds.DoctorId == doctorId &&
+            ds.HealthServiceId == healthServiceId);
+
+        if (!doctorOffersService)
         {
-            query = query.Where(bs =>
-                _db.DoctorServices.Any(ds =>
-                    ds.DoctorId ==
-                        doctorId.Value &&
-
-                    ds.HealthServiceId ==
-                        bs.HealthServiceId));
+            throw new Exception("Seçilen doktor bu hizmeti sunmuyor.");
         }
 
+        bool branchOffersService = _db.BranchServices.Any(bs =>
+            bs.BranchId == doctor.BranchId &&
+            bs.HealthServiceId == healthServiceId &&
+            bs.IsAvailable);
 
-        return query
-            .Select(bs =>
-                bs.HealthService)
+        if (!branchOffersService)
+        {
+            throw new Exception("Bu hizmet seçilen şubede aktif değil.");
+        }
 
+        DayOfWeek day = date.DayOfWeek;
+
+        List<DoctorSchedule> schedules = _db.DoctorSchedules
+            .Where(s => s.DoctorId == doctorId && s.DayOfWeek == day)
+            .OrderBy(s => s.StartTime)
+            .ToList();
+
+        if (schedules.Count == 0)
+        {
+            return new List<DateTime>();
+        }
+
+        DateTime dayStart = date.ToDateTime(TimeOnly.MinValue);
+        DateTime dayEnd = dayStart.AddDays(1);
+
+        List<Appointment> appointments = _db.Appointments
+            .Where(a =>
+                a.DoctorId == doctorId &&
+                a.StartDateTime >= dayStart &&
+                a.StartDateTime < dayEnd &&
+                a.Status != AppointmentStatus.Cancelled &&
+                a.Status != AppointmentStatus.Rejected)
+            .ToList();
+
+        var result = new List<DateTime>();
+
+        // Mesai içinde, çakışmasız ve gelecek slotlar
+        foreach (DoctorSchedule schedule in schedules)
+        {
+            DateTime current = date.ToDateTime(schedule.StartTime);
+            DateTime scheduleEnd = date.ToDateTime(schedule.EndTime);
+
+            while (current.AddMinutes(service.DurationMinutes) <= scheduleEnd)
+            {
+                DateTime slotEnd = current.AddMinutes(service.DurationMinutes);
+
+                bool conflict = appointments.Any(a =>
+                    current < a.EndDateTime &&
+                    slotEnd > a.StartDateTime);
+
+                bool isFuture = current > DateTime.Now;
+
+                if (!conflict && isFuture)
+                {
+                    result.Add(current);
+                }
+
+                current = current.AddMinutes(service.DurationMinutes);
+            }
+        }
+
+        return result
             .Distinct()
-
-            .OrderBy(s => s.Name)
-
+            .OrderBy(x => x)
             .ToList();
     }
-
-
-    public List<DateTime>
-        GetAvailableSlots(
-            int doctorId,
-            int healthServiceId,
-            DateOnly date)
-    {
-        return _scheduleService
-            .GetAvailableSlots(
-                doctorId,
-                healthServiceId,
-                date);
-    }
-
 
     public Appointment CreateAppointment(
         int patientId,
@@ -160,31 +180,104 @@ public class PatientService : IPatientService
         int healthServiceId,
         DateTime startDateTime)
     {
-        return _appointmentService
-            .CreateAppointment(
-                patientId,
-                doctorId,
-                branchId,
-                healthServiceId,
-                startDateTime);
+        Patient patient = _db.Patients.FirstOrDefault(p => p.UserId == patientId)
+            ?? throw new Exception("Hasta bulunamadı.");
+
+        Doctor doctor = _db.Doctors.FirstOrDefault(d => d.UserId == doctorId)
+            ?? throw new Exception("Doktor bulunamadı.");
+
+        if (doctor.BranchId != branchId)
+        {
+            throw new Exception("Seçilen doktor bu şubede çalışmıyor.");
+        }
+
+        HealthService service = _db.HealthServices.FirstOrDefault(s => s.HealthServiceId == healthServiceId)
+            ?? throw new Exception("Hizmet bulunamadı.");
+
+        BranchService branchService = _db.BranchServices.FirstOrDefault(bs =>
+            bs.BranchId == branchId &&
+            bs.HealthServiceId == healthServiceId &&
+            bs.IsAvailable)
+            ?? throw new Exception("Hizmet bu şubede aktif değil.");
+
+        bool doctorOffersService = _db.DoctorServices.Any(ds =>
+            ds.DoctorId == doctorId &&
+            ds.HealthServiceId == healthServiceId);
+
+        if (!doctorOffersService)
+        {
+            throw new Exception("Doktor seçilen hizmeti sunmuyor.");
+        }
+
+        DateOnly date = DateOnly.FromDateTime(startDateTime);
+        List<DateTime> availableSlots = GetAvailableSlots(doctorId, healthServiceId, date);
+
+        if (!availableSlots.Contains(startDateTime))
+        {
+            throw new Exception("Seçilen saat artık uygun değil.");
+        }
+
+        DateTime endDateTime = startDateTime.AddMinutes(service.DurationMinutes);
+
+        // Hastanın aynı saatte başka randevusu olmasın
+        bool patientConflict = _db.Appointments.Any(a =>
+            a.PatientId == patientId &&
+            a.Status != AppointmentStatus.Cancelled &&
+            a.Status != AppointmentStatus.Rejected &&
+            startDateTime < a.EndDateTime &&
+            endDateTime > a.StartDateTime);
+
+        if (patientConflict)
+        {
+            throw new Exception("Bu saat aralığında başka bir randevunuz bulunuyor.");
+        }
+
+        var appointment = new Appointment
+        {
+            PatientId = patient.UserId,
+            DoctorId = doctor.UserId,
+            BranchId = branchId,
+            HealthServiceId = service.HealthServiceId,
+            StartDateTime = startDateTime,
+            EndDateTime = endDateTime,
+            Price = branchService.Price,
+            Status = AppointmentStatus.Pending,
+            CreatedAt = DateTime.Now
+        };
+
+        _db.Appointments.Add(appointment);
+        _db.SaveChanges();
+
+        return appointment;
     }
 
-
-    public List<Appointment>
-        GetAppointments(
-            int patientId)
+    public List<Appointment> GetAppointments(int patientId)
     {
-        return _appointmentService
-            .GetPatientAppointments(
-                patientId);
+        return _db.Appointments
+            .Include(a => a.Patient)
+            .Include(a => a.Doctor)
+                .ThenInclude(d => d.Department)
+            .Include(a => a.Branch)
+            .Include(a => a.HealthService)
+            .Where(a => a.PatientId == patientId)
+            .OrderByDescending(a => a.StartDateTime)
+            .ToList();
     }
 
-
-    public void CancelAppointment(
-        int appointmentId)
+    public void CancelAppointment(int appointmentId)
     {
-        _appointmentService
-            .CancelAppointment(
-                appointmentId);
+        Appointment appointment = _db.Appointments.FirstOrDefault(a => a.AppointmentId == appointmentId)
+            ?? throw new Exception("Randevu bulunamadı.");
+
+        if (appointment.Status == AppointmentStatus.Cancelled ||
+            appointment.Status == AppointmentStatus.Rejected ||
+            appointment.Status == AppointmentStatus.Completed)
+        {
+            throw new Exception("Bu randevu iptal edilemez.");
+        }
+
+        appointment.Status = AppointmentStatus.Cancelled;
+
+        _db.SaveChanges();
     }
 }

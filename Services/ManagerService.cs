@@ -19,10 +19,7 @@ public class ManagerService : IManagerService
         _db = db;
     }
 
-
-    // =====================================================
-    // BRANCH
-    // =====================================================
+    // Şubeler
 
     public Branch AddBranch(
         int hospitalId,
@@ -34,26 +31,34 @@ public class ManagerService : IManagerService
         TimeOnly openingTime,
         TimeOnly closingTime)
     {
-        if (!_db.Hospitals.Any(h =>
-                h.HospitalId == hospitalId))
+        if (!_db.Hospitals.Any(h => h.HospitalId == hospitalId))
         {
             throw new Exception("Hastane bulunamadı.");
         }
 
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new Exception("Şube adı zorunludur.");
+        }
+
         if (openingTime >= closingTime)
         {
-            throw new Exception(
-                "Açılış saati kapanış saatinden önce olmalıdır.");
+            throw new Exception("Açılış saati kapanış saatinden önce olmalıdır.");
+        }
+
+        if (_db.Branches.Any(b => b.Name == name.Trim()))
+        {
+            throw new Exception("Bu isimde bir şube zaten mevcut.");
         }
 
         var branch = new Branch
         {
             HospitalId = hospitalId,
-            Name = name,
-            City = city,
-            District = district,
-            Address = address,
-            Phone = phone,
+            Name = name.Trim(),
+            City = city.Trim(),
+            District = district.Trim(),
+            Address = address.Trim(),
+            Phone = phone.Trim(),
             OpeningTime = openingTime,
             ClosingTime = closingTime
         };
@@ -63,7 +68,6 @@ public class ManagerService : IManagerService
 
         return branch;
     }
-
 
     public void UpdateBranch(
         int branchId,
@@ -75,119 +79,88 @@ public class ManagerService : IManagerService
         TimeOnly openingTime,
         TimeOnly closingTime)
     {
-        var branch =
-            _db.Branches.Find(branchId);
+        var branch = _db.Branches.FirstOrDefault(b => b.BranchId == branchId)
+            ?? throw new Exception("Şube bulunamadı.");
 
-        if (branch == null)
-            throw new Exception("Şube bulunamadı.");
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new Exception("Şube adı zorunludur.");
+        }
 
         if (openingTime >= closingTime)
         {
-            throw new Exception(
-                "Açılış saati kapanış saatinden önce olmalıdır.");
+            throw new Exception("Açılış saati kapanış saatinden önce olmalıdır.");
         }
 
-        branch.Name = name;
-        branch.City = city;
-        branch.District = district;
-        branch.Address = address;
-        branch.Phone = phone;
+        if (_db.Branches.Any(b => b.BranchId != branchId && b.Name == name.Trim()))
+        {
+            throw new Exception("Bu isimde başka bir şube zaten mevcut.");
+        }
+
+        branch.Name = name.Trim();
+        branch.City = city.Trim();
+        branch.District = district.Trim();
+        branch.Address = address.Trim();
+        branch.Phone = phone.Trim();
         branch.OpeningTime = openingTime;
         branch.ClosingTime = closingTime;
 
         _db.SaveChanges();
     }
 
-
     public void DeleteBranch(int branchId)
     {
-        var branch =
-            _db.Branches
-                .Include(b => b.Employees)
-                .Include(b => b.Appointments)
-                .FirstOrDefault(b =>
-                    b.BranchId == branchId);
+        var branch = _db.Branches.FirstOrDefault(b => b.BranchId == branchId)
+            ?? throw new Exception("Şube bulunamadı.");
 
-        if (branch == null)
-            throw new Exception("Şube bulunamadı.");
+        // Bağlı kayıt varsa silinemez
+        bool hasRelatedData =
+            _db.Departments.Any(d => d.BranchId == branchId)
+            || _db.Employees.Any(e => e.BranchId == branchId)
+            || _db.BranchServices.Any(bs => bs.BranchId == branchId)
+            || _db.BranchEquipment.Any(be => be.BranchId == branchId)
+            || _db.Appointments.Any(a => a.BranchId == branchId);
 
-        if (branch.Employees.Any())
+        if (hasRelatedData)
         {
-            throw new Exception(
-                "Çalışanı bulunan şube silinemez.");
+            throw new Exception("Bu şubeye bağlı bölüm, çalışan, hizmet, ekipman veya randevu bulunduğu için şube silinemez.");
         }
-
-        if (branch.Appointments.Any())
-        {
-            throw new Exception(
-                "Randevu kaydı bulunan şube silinemez.");
-        }
-
-        var departments =
-            _db.Departments
-                .Where(d =>
-                    d.BranchId == branchId);
-
-        var services =
-            _db.BranchServices
-                .Where(bs =>
-                    bs.BranchId == branchId);
-
-        var equipment =
-            _db.BranchEquipment
-                .Where(be =>
-                    be.BranchId == branchId);
-
-        _db.BranchServices.RemoveRange(services);
-        _db.BranchEquipment.RemoveRange(equipment);
-        _db.Departments.RemoveRange(departments);
 
         _db.Branches.Remove(branch);
-
         _db.SaveChanges();
     }
-
 
     public List<Branch> GetBranches()
     {
         return _db.Branches
-            .OrderBy(b => b.City)
-            .ThenBy(b => b.Name)
+            .OrderBy(b => b.BranchId)
             .ToList();
     }
 
+    // Bölümler
 
-    // =====================================================
-    // DEPARTMENT
-    // =====================================================
-
-    public Department AddDepartment(
-        int branchId,
-        string name,
-        string description)
+    public Department AddDepartment(int branchId, string name, string description)
     {
-        if (!_db.Branches.Any(b =>
-                b.BranchId == branchId))
+        if (!_db.Branches.Any(b => b.BranchId == branchId))
         {
             throw new Exception("Şube bulunamadı.");
         }
 
-        bool exists =
-            _db.Departments.Any(d =>
-                d.BranchId == branchId &&
-                d.Name == name);
-
-        if (exists)
+        if (string.IsNullOrWhiteSpace(name))
         {
-            throw new Exception(
-                "Bu bölüm seçilen şubede zaten mevcut.");
+            throw new Exception("Bölüm adı zorunludur.");
+        }
+
+        if (_db.Departments.Any(d => d.BranchId == branchId && d.Name == name.Trim()))
+        {
+            throw new Exception("Bu şubede aynı isimde bir bölüm zaten mevcut.");
         }
 
         var department = new Department
         {
             BranchId = branchId,
-            Name = name,
-            Description = description
+            Name = name.Trim(),
+            Description = description.Trim()
         };
 
         _db.Departments.Add(department);
@@ -196,76 +169,62 @@ public class ManagerService : IManagerService
         return department;
     }
 
-
-    public void UpdateDepartment(
-        int departmentId,
-        string name,
-        string description)
+    public void UpdateDepartment(int departmentId, string name, string description)
     {
-        var department =
-            _db.Departments.Find(departmentId);
+        var department = _db.Departments.FirstOrDefault(d => d.DepartmentId == departmentId)
+            ?? throw new Exception("Bölüm bulunamadı.");
 
-        if (department == null)
-            throw new Exception("Bölüm bulunamadı.");
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new Exception("Bölüm adı zorunludur.");
+        }
 
-        department.Name = name;
-        department.Description = description;
+        if (_db.Departments.Any(d =>
+                d.DepartmentId != departmentId &&
+                d.BranchId == department.BranchId &&
+                d.Name == name.Trim()))
+        {
+            throw new Exception("Bu şubede aynı isimde başka bir bölüm mevcut.");
+        }
+
+        department.Name = name.Trim();
+        department.Description = description.Trim();
 
         _db.SaveChanges();
     }
 
-
     public void DeleteDepartment(int departmentId)
     {
-        var department =
-            _db.Departments
-                .Include(d => d.Employees)
-                .FirstOrDefault(d =>
-                    d.DepartmentId == departmentId);
+        var department = _db.Departments.FirstOrDefault(d => d.DepartmentId == departmentId)
+            ?? throw new Exception("Bölüm bulunamadı.");
 
-        if (department == null)
-            throw new Exception("Bölüm bulunamadı.");
-
-        if (department.Employees.Any())
+        if (_db.Employees.Any(e => e.DepartmentId == departmentId))
         {
-            throw new Exception(
-                "Çalışanı bulunan bölüm silinemez.");
+            throw new Exception("Bu bölüme bağlı çalışanlar bulunduğu için bölüm silinemez.");
         }
 
         _db.Departments.Remove(department);
         _db.SaveChanges();
     }
 
-
-    public List<Department> GetDepartments(
-        int branchId)
+    public List<Department> GetDepartments(int branchId)
     {
         return _db.Departments
             .Where(d => d.BranchId == branchId)
-            .OrderBy(d => d.Name)
+            .OrderBy(d => d.DepartmentId)
             .ToList();
     }
 
+    // Hizmetler
 
-    // =====================================================
-    // HEALTH SERVICE
-    // =====================================================
-
-    public HealthService AddHealthService(
-        string name,
-        string description,
-        int durationMinutes)
+    public HealthService AddHealthService(string name, string description, int durationMinutes)
     {
-        if (durationMinutes <= 0)
-        {
-            throw new Exception(
-                "Hizmet süresi sıfırdan büyük olmalıdır.");
-        }
+        ValidateService(name, durationMinutes);
 
         var service = new HealthService
         {
-            Name = name,
-            Description = description,
+            Name = name.Trim(),
+            Description = description.Trim(),
             DurationMinutes = durationMinutes
         };
 
@@ -275,209 +234,257 @@ public class ManagerService : IManagerService
         return service;
     }
 
-
-    public void UpdateHealthService(
-        int healthServiceId,
-        string name,
-        string description,
-        int durationMinutes)
+    public void UpdateHealthService(int healthServiceId, string name, string description, int durationMinutes)
     {
-        var service =
-            _db.HealthServices.Find(
-                healthServiceId);
+        var service = _db.HealthServices.FirstOrDefault(s => s.HealthServiceId == healthServiceId)
+            ?? throw new Exception("Hizmet bulunamadı.");
 
-        if (service == null)
-            throw new Exception("Hizmet bulunamadı.");
+        ValidateService(name, durationMinutes);
 
-        if (durationMinutes <= 0)
-        {
-            throw new Exception(
-                "Hizmet süresi sıfırdan büyük olmalıdır.");
-        }
-
-        service.Name = name;
-        service.Description = description;
+        service.Name = name.Trim();
+        service.Description = description.Trim();
         service.DurationMinutes = durationMinutes;
 
         _db.SaveChanges();
     }
 
-
-    public void DeleteHealthService(
-        int healthServiceId)
+    public void DeleteHealthService(int healthServiceId)
     {
-        bool usedInAppointment =
-            _db.Appointments.Any(a =>
-                a.HealthServiceId ==
-                healthServiceId);
+        var service = _db.HealthServices.FirstOrDefault(s => s.HealthServiceId == healthServiceId)
+            ?? throw new Exception("Hizmet bulunamadı.");
 
-        if (usedInAppointment)
+        bool used =
+            _db.BranchServices.Any(bs => bs.HealthServiceId == healthServiceId)
+            || _db.DoctorServices.Any(ds => ds.HealthServiceId == healthServiceId)
+            || _db.Appointments.Any(a => a.HealthServiceId == healthServiceId);
+
+        if (used)
         {
-            throw new Exception(
-                "Randevu kaydı bulunan hizmet silinemez.");
+            throw new Exception("Bu hizmet aktif ilişkilerde veya randevularda kullanıldığı için silinemez.");
         }
 
-        var service =
-            _db.HealthServices.Find(
-                healthServiceId);
-
-        if (service == null)
-            throw new Exception("Hizmet bulunamadı.");
-
-        var branchServices =
-            _db.BranchServices
-                .Where(bs =>
-                    bs.HealthServiceId ==
-                    healthServiceId);
-
-        var doctorServices =
-            _db.DoctorServices
-                .Where(ds =>
-                    ds.HealthServiceId ==
-                    healthServiceId);
-
-        _db.BranchServices.RemoveRange(
-            branchServices);
-
-        _db.DoctorServices.RemoveRange(
-            doctorServices);
-
         _db.HealthServices.Remove(service);
-
         _db.SaveChanges();
     }
 
-
-    public List<HealthService>
-        GetHealthServices()
+    public List<HealthService> GetHealthServices()
     {
         return _db.HealthServices
-            .OrderBy(s => s.Name)
+            .OrderBy(s => s.HealthServiceId)
             .ToList();
     }
 
+    // Şube hizmetleri
 
-    // =====================================================
-    // BRANCH SERVICE
-    // =====================================================
-
-    public void AssignServiceToBranch(
-        int branchId,
-        int healthServiceId,
-        decimal price)
+    public void AssignServiceToBranch(int branchId, int healthServiceId, decimal price)
     {
         if (price < 0)
-            throw new Exception(
-                "Fiyat negatif olamaz.");
+        {
+            throw new Exception("Fiyat negatif olamaz.");
+        }
 
-        if (!_db.Branches.Any(b =>
-                b.BranchId == branchId))
+        if (!_db.Branches.Any(b => b.BranchId == branchId))
         {
             throw new Exception("Şube bulunamadı.");
         }
 
-        if (!_db.HealthServices.Any(s =>
-                s.HealthServiceId ==
-                healthServiceId))
+        if (!_db.HealthServices.Any(s => s.HealthServiceId == healthServiceId))
         {
             throw new Exception("Hizmet bulunamadı.");
         }
 
-        bool exists =
-            _db.BranchServices.Any(bs =>
-                bs.BranchId == branchId &&
-                bs.HealthServiceId ==
-                    healthServiceId);
+        var existing = _db.BranchServices.FirstOrDefault(bs =>
+            bs.BranchId == branchId &&
+            bs.HealthServiceId == healthServiceId);
 
-        if (exists)
+        // Varsa güncelle, yoksa ekle
+        if (existing != null)
         {
-            throw new Exception(
-                "Hizmet bu şubeye zaten atanmış.");
+            existing.Price = price;
+            existing.IsAvailable = true;
         }
-
-        _db.BranchServices.Add(
-            new BranchService
+        else
+        {
+            _db.BranchServices.Add(new BranchService
             {
                 BranchId = branchId,
                 HealthServiceId = healthServiceId,
                 Price = price,
                 IsAvailable = true
             });
+        }
 
         _db.SaveChanges();
     }
 
+    public List<BranchService> GetBranchServices(int? branchId = null)
+    {
+        IQueryable<BranchService> query = _db.BranchServices
+            .Include(bs => bs.Branch)
+            .Include(bs => bs.HealthService);
 
-    public void UpdateBranchService(
+        if (branchId.HasValue)
+        {
+            query = query.Where(bs => bs.BranchId == branchId.Value);
+        }
+
+        return query
+            .OrderBy(bs => bs.BranchId)
+            .ThenBy(bs => bs.HealthServiceId)
+            .ToList();
+    }
+
+    public void UpdateBranchService(int branchId, int healthServiceId, decimal price, bool isAvailable)
+    {
+        if (price < 0)
+        {
+            throw new Exception("Fiyat negatif olamaz.");
+        }
+
+        var relation = _db.BranchServices.FirstOrDefault(bs =>
+                bs.BranchId == branchId &&
+                bs.HealthServiceId == healthServiceId)
+            ?? throw new Exception("Şube hizmet kaydı bulunamadı.");
+
+        relation.Price = price;
+        relation.IsAvailable = isAvailable;
+
+        _db.SaveChanges();
+    }
+
+    public void RemoveServiceFromBranch(int branchId, int healthServiceId)
+    {
+        var relation = _db.BranchServices.FirstOrDefault(bs =>
+                bs.BranchId == branchId &&
+                bs.HealthServiceId == healthServiceId)
+            ?? throw new Exception("Şube-hizmet bağlantısı bulunamadı.");
+
+        if (_db.Appointments.Any(a => a.BranchId == branchId && a.HealthServiceId == healthServiceId))
+        {
+            throw new Exception("Bu hizmete ait randevular bulunduğu için hizmet şubeden kaldırılamaz. Hizmeti pasif yapabilirsiniz.");
+        }
+
+        if (_db.DoctorServices.Any(ds => ds.HealthServiceId == healthServiceId))
+        {
+            throw new Exception("Bu hizmet doktorlara atanmış durumda. Önce doktor-hizmet bağlantılarını kaldırınız.");
+        }
+
+        _db.BranchServices.Remove(relation);
+        _db.SaveChanges();
+    }
+
+    public HealthService AddHealthServiceToBranch(
         int branchId,
-        int healthServiceId,
+        string name,
+        string description,
+        int duration,
         decimal price,
         bool isAvailable)
     {
-        var branchService =
-            _db.BranchServices.Find(
-                branchId,
-                healthServiceId);
-
-        if (branchService == null)
-            throw new Exception(
-                "Şube hizmeti bulunamadı.");
+        ValidateService(name, duration);
 
         if (price < 0)
-            throw new Exception(
-                "Fiyat negatif olamaz.");
-
-        branchService.Price = price;
-        branchService.IsAvailable = isAvailable;
-
-        _db.SaveChanges();
-    }
-
-
-    public void RemoveServiceFromBranch(
-        int branchId,
-        int healthServiceId)
-    {
-        bool appointmentExists =
-            _db.Appointments.Any(a =>
-                a.BranchId == branchId &&
-                a.HealthServiceId ==
-                    healthServiceId);
-
-        if (appointmentExists)
         {
-            throw new Exception(
-                "Randevu geçmişi bulunan hizmet şubeden silinemez. Pasif hale getirin.");
+            throw new Exception("Fiyat negatif olamaz.");
         }
 
-        var branchService =
-            _db.BranchServices.Find(
-                branchId,
-                healthServiceId);
+        if (!_db.Branches.Any(b => b.BranchId == branchId))
+        {
+            throw new Exception("Şube bulunamadı.");
+        }
 
-        if (branchService == null)
-            throw new Exception(
-                "Şube hizmeti bulunamadı.");
+        using var transaction = _db.Database.BeginTransaction();
 
-        _db.BranchServices.Remove(
-            branchService);
+        try
+        {
+            var service = new HealthService
+            {
+                Name = name.Trim(),
+                Description = description.Trim(),
+                DurationMinutes = duration
+            };
 
-        _db.SaveChanges();
+            _db.HealthServices.Add(service);
+            _db.SaveChanges();
+
+            _db.BranchServices.Add(new BranchService
+            {
+                BranchId = branchId,
+                HealthServiceId = service.HealthServiceId,
+                Price = price,
+                IsAvailable = isAvailable
+            });
+
+            _db.SaveChanges();
+            transaction.Commit();
+
+            return service;
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
     }
 
-
-    // =====================================================
-    // EQUIPMENT
-    // =====================================================
-
-    public Equipment AddEquipment(
+    public void UpdateBranchServiceDetails(
+        int branchId,
+        int healthServiceId,
         string name,
-        string description)
+        string description,
+        int duration,
+        decimal price,
+        bool isAvailable)
     {
+        ValidateService(name, duration);
+
+        if (price < 0)
+        {
+            throw new Exception("Fiyat negatif olamaz.");
+        }
+
+        using var transaction = _db.Database.BeginTransaction();
+
+        try
+        {
+            var service = _db.HealthServices.FirstOrDefault(s => s.HealthServiceId == healthServiceId)
+                ?? throw new Exception("Hizmet bulunamadı.");
+
+            var relation = _db.BranchServices.FirstOrDefault(bs =>
+                    bs.BranchId == branchId &&
+                    bs.HealthServiceId == healthServiceId)
+                ?? throw new Exception("Şube hizmet kaydı bulunamadı.");
+
+            service.Name = name.Trim();
+            service.Description = description.Trim();
+            service.DurationMinutes = duration;
+
+            relation.Price = price;
+            relation.IsAvailable = isAvailable;
+
+            _db.SaveChanges();
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    // Ekipman
+
+    public Equipment AddEquipment(string name, string description)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new Exception("Ekipman adı zorunludur.");
+        }
+
         var equipment = new Equipment
         {
-            Name = name,
-            Description = description
+            Name = name.Trim(),
+            Description = description.Trim()
         };
 
         _db.Equipment.Add(equipment);
@@ -486,147 +493,74 @@ public class ManagerService : IManagerService
         return equipment;
     }
 
-
-    public void UpdateEquipment(
-        int equipmentId,
-        string name,
-        string description)
+    public void UpdateEquipment(int equipmentId, string name, string description)
     {
-        var equipment =
-            _db.Equipment.Find(equipmentId);
+        var equipment = _db.Equipment.FirstOrDefault(e => e.EquipmentId == equipmentId)
+            ?? throw new Exception("Ekipman bulunamadı.");
 
-        if (equipment == null)
-            throw new Exception(
-                "Ekipman bulunamadı.");
-
-        equipment.Name = name;
-        equipment.Description = description;
-
-        _db.SaveChanges();
-    }
-
-
-    public void DeleteEquipment(
-        int equipmentId)
-    {
-        var equipment =
-            _db.Equipment.Find(equipmentId);
-
-        if (equipment == null)
-            throw new Exception(
-                "Ekipman bulunamadı.");
-
-        var branchEquipment =
-            _db.BranchEquipment
-                .Where(be =>
-                    be.EquipmentId ==
-                    equipmentId);
-
-        _db.BranchEquipment.RemoveRange(
-            branchEquipment);
-
-        _db.Equipment.Remove(equipment);
-
-        _db.SaveChanges();
-    }
-
-
-    public void AssignEquipmentToBranch(
-        int branchId,
-        int equipmentId,
-        int quantity)
-    {
-        if (quantity <= 0)
+        if (string.IsNullOrWhiteSpace(name))
         {
-            throw new Exception(
-                "Ekipman adedi sıfırdan büyük olmalıdır.");
+            throw new Exception("Ekipman adı zorunludur.");
         }
 
-        if (!_db.Branches.Any(b =>
-                b.BranchId == branchId))
+        equipment.Name = name.Trim();
+        equipment.Description = description.Trim();
+
+        _db.SaveChanges();
+    }
+
+    public void DeleteEquipment(int equipmentId)
+    {
+        var equipment = _db.Equipment.FirstOrDefault(e => e.EquipmentId == equipmentId)
+            ?? throw new Exception("Ekipman bulunamadı.");
+
+        if (_db.BranchEquipment.Any(be => be.EquipmentId == equipmentId))
+        {
+            throw new Exception("Bu ekipman bir şubeye bağlı olduğu için silinemez.");
+        }
+
+        _db.Equipment.Remove(equipment);
+        _db.SaveChanges();
+    }
+
+    // Şube ekipman
+
+    public void AssignEquipmentToBranch(int branchId, int equipmentId, int quantity)
+    {
+        if (quantity < 0)
+        {
+            throw new Exception("Ekipman adedi negatif olamaz.");
+        }
+
+        if (!_db.Branches.Any(b => b.BranchId == branchId))
         {
             throw new Exception("Şube bulunamadı.");
         }
 
-        if (!_db.Equipment.Any(e =>
-                e.EquipmentId == equipmentId))
+        if (!_db.Equipment.Any(e => e.EquipmentId == equipmentId))
         {
-            throw new Exception(
-                "Ekipman bulunamadı.");
+            throw new Exception("Ekipman bulunamadı.");
         }
 
-        bool exists =
-            _db.BranchEquipment.Any(be =>
-                be.BranchId == branchId &&
-                be.EquipmentId ==
-                    equipmentId);
+        var existing = _db.BranchEquipment.FirstOrDefault(be =>
+            be.BranchId == branchId &&
+            be.EquipmentId == equipmentId);
 
-        if (exists)
+        if (existing != null)
         {
-            throw new Exception(
-                "Ekipman bu şubede zaten tanımlı.");
+            existing.Quantity = quantity;
+            existing.IsOperational = true;
         }
-
-        _db.BranchEquipment.Add(
-            new BranchEquipment
+        else
+        {
+            _db.BranchEquipment.Add(new BranchEquipment
             {
                 BranchId = branchId,
                 EquipmentId = equipmentId,
                 Quantity = quantity,
                 IsOperational = true
             });
-
-        _db.SaveChanges();
-    }
-
-
-    public void UpdateBranchEquipment(
-        int branchId,
-        int equipmentId,
-        int quantity,
-        bool isOperational)
-    {
-        var branchEquipment =
-            _db.BranchEquipment.Find(
-                branchId,
-                equipmentId);
-
-        if (branchEquipment == null)
-        {
-            throw new Exception(
-                "Şube ekipmanı bulunamadı.");
         }
-
-        if (quantity < 0)
-        {
-            throw new Exception(
-                "Ekipman adedi negatif olamaz.");
-        }
-
-        branchEquipment.Quantity = quantity;
-        branchEquipment.IsOperational =
-            isOperational;
-
-        _db.SaveChanges();
-    }
-
-    public void RemoveEquipmentFromBranch(
-        int branchId,
-        int equipmentId)
-    {
-        var branchEquipment =
-            _db.BranchEquipment.Find(
-                branchId,
-                equipmentId);
-
-        if (branchEquipment == null)
-        {
-            throw new Exception(
-                "Şube ekipmanı bulunamadı.");
-        }
-
-        _db.BranchEquipment.Remove(
-            branchEquipment);
 
         _db.SaveChanges();
     }
@@ -634,81 +568,182 @@ public class ManagerService : IManagerService
     public List<Equipment> GetEquipment()
     {
         return _db.Equipment
-            .OrderBy(e => e.Name)
+            .OrderBy(e => e.EquipmentId)
             .ToList();
     }
 
-
-    public List<BranchEquipment>
-        GetBranchEquipment(
-            int? branchId = null)
+    public List<BranchEquipment> GetBranchEquipment(int? branchId = null)
     {
-        var query =
-            _db.BranchEquipment
-                .Include(be =>
-                    be.Branch)
-                .Include(be =>
-                    be.Equipment)
-                .AsQueryable();
-
+        IQueryable<BranchEquipment> query = _db.BranchEquipment
+            .Include(be => be.Branch)
+            .Include(be => be.Equipment);
 
         if (branchId.HasValue)
         {
-            query =
-                query.Where(be =>
-                    be.BranchId ==
-                    branchId.Value);
+            query = query.Where(be => be.BranchId == branchId.Value);
         }
-
 
         return query
-            .OrderBy(be =>
-                be.Branch.Name)
-            .ThenBy(be =>
-                be.Equipment.Name)
+            .OrderBy(be => be.BranchId)
+            .ThenBy(be => be.EquipmentId)
             .ToList();
     }
 
-    public List<BranchService> GetBranchServices(int? branchId = null)
+    public void UpdateBranchEquipment(int branchId, int equipmentId, int quantity, bool isOperational)
     {
-        var query =
-            _db.BranchServices
-                .Include(bs =>
-                    bs.Branch)
-                .Include(bs =>
-                    bs.HealthService)
-                .AsQueryable();
-
-
-        if (branchId.HasValue)
+        if (quantity < 0)
         {
-            query =
-                query.Where(bs =>
-                    bs.BranchId ==
-                    branchId.Value);
+            throw new Exception("Ekipman adedi negatif olamaz.");
         }
 
+        var relation = _db.BranchEquipment.FirstOrDefault(be =>
+                be.BranchId == branchId &&
+                be.EquipmentId == equipmentId)
+            ?? throw new Exception("Şube ekipman kaydı bulunamadı.");
 
-        return query.ToList();
+        relation.Quantity = quantity;
+        relation.IsOperational = isOperational;
+
+        _db.SaveChanges();
     }
+
+    public void RemoveEquipmentFromBranch(int branchId, int equipmentId)
+    {
+        var relation = _db.BranchEquipment.FirstOrDefault(be =>
+                be.BranchId == branchId &&
+                be.EquipmentId == equipmentId)
+            ?? throw new Exception("Şube-ekipman bağlantısı bulunamadı.");
+
+        _db.BranchEquipment.Remove(relation);
+        _db.SaveChanges();
+    }
+
+    public Equipment AddEquipmentToBranch(
+        int branchId,
+        string name,
+        string description,
+        int quantity,
+        bool isOperational)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new Exception("Ekipman adı zorunludur.");
+        }
+
+        if (quantity < 0)
+        {
+            throw new Exception("Ekipman adedi negatif olamaz.");
+        }
+
+        if (!_db.Branches.Any(b => b.BranchId == branchId))
+        {
+            throw new Exception("Şube bulunamadı.");
+        }
+
+        using var transaction = _db.Database.BeginTransaction();
+
+        try
+        {
+            var equipment = new Equipment
+            {
+                Name = name.Trim(),
+                Description = description.Trim()
+            };
+
+            _db.Equipment.Add(equipment);
+            _db.SaveChanges();
+
+            _db.BranchEquipment.Add(new BranchEquipment
+            {
+                BranchId = branchId,
+                EquipmentId = equipment.EquipmentId,
+                Quantity = quantity,
+                IsOperational = isOperational
+            });
+
+            _db.SaveChanges();
+            transaction.Commit();
+
+            return equipment;
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public void UpdateBranchEquipmentDetails(
+        int branchId,
+        int equipmentId,
+        string name,
+        string description,
+        int quantity,
+        bool isOperational)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new Exception("Ekipman adı zorunludur.");
+        }
+
+        if (quantity < 0)
+        {
+            throw new Exception("Ekipman adedi negatif olamaz.");
+        }
+
+        using var transaction = _db.Database.BeginTransaction();
+
+        try
+        {
+            var equipment = _db.Equipment.FirstOrDefault(e => e.EquipmentId == equipmentId)
+                ?? throw new Exception("Ekipman bulunamadı.");
+
+            var relation = _db.BranchEquipment.FirstOrDefault(be =>
+                    be.BranchId == branchId &&
+                    be.EquipmentId == equipmentId)
+                ?? throw new Exception("Şube ekipman kaydı bulunamadı.");
+
+            equipment.Name = name.Trim();
+            equipment.Description = description.Trim();
+
+            relation.Quantity = quantity;
+            relation.IsOperational = isOperational;
+
+            _db.SaveChanges();
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    // Randevular
 
     public List<Appointment> GetBranchAppointments(int branchId)
     {
         return _db.Appointments
-            .Include(a =>
-                a.Patient)
-            .Include(a =>
-                a.Doctor)
-            .Include(a =>
-                a.HealthService)
-            .Include(a =>
-                a.Branch)
-            .Where(a =>
-                a.BranchId ==
-                branchId)
-            .OrderBy(a =>
-                a.AppointmentId)
+            .Include(a => a.Patient)
+            .Include(a => a.Doctor)
+                .ThenInclude(d => d.Department)
+            .Include(a => a.HealthService)
+            .Include(a => a.Branch)
+            .Where(a => a.BranchId == branchId)
+            .OrderBy(a => a.AppointmentId)
             .ToList();
     }
 
+    private static void ValidateService(string name, int duration)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new Exception("Hizmet adı zorunludur.");
+        }
+
+        if (duration <= 0)
+        {
+            throw new Exception("Hizmet süresi sıfırdan büyük olmalıdır.");
+        }
+    }
 }

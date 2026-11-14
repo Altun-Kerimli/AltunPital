@@ -12,59 +12,18 @@ internal static class Program
     {
         ApplicationConfiguration.Initialize();
 
-
-        using var db =
-            new AppDbContext();
-
-
+        using var db = new AppDbContext();
         db.Database.Migrate();
+        SeedData.Initialize(db);
 
-        SeedData.Initialize(
-            db);
-
-
-        var scheduleService =
-            new ScheduleService(
-                db);
-
-
-        var appointmentService =
-            new AppointmentService(
-                db,
-                scheduleService);
-
-
-        var patientService =
-            new PatientService(
-                db,
-                appointmentService,
-                scheduleService);
-
-
-        var authenticationService =
-            new AuthenticationService(
-                db);
-
-
-        var employeeService =
-            new EmployeeService(
-                db);
-
-
-        var managerService =
-            new ManagerService(
-                db);
-
-
-        var doctorService =
-            new DoctorManagementService(
-                db);
-
-
-        var accountService =
-            new UserAccountService(
-                db);
-
+        var scheduleService = new ScheduleService(db);
+        var appointmentService = new AppointmentService(db, scheduleService);
+        var patientService = new PatientService(db, appointmentService, scheduleService);
+        var authenticationService = new AuthenticationService(db);
+        var employeeService = new EmployeeService(db);
+        var managerService = new ManagerService(db);
+        var doctorService = new DoctorManagementService(db);
+        var accountService = new UserAccountService(db);
 
         System.Windows.Forms.Application.Run(
             new LoginForm(

@@ -11,10 +11,7 @@ namespace AltunPital.UI.Desktop;
 
 public static class EntityFormHelpers
 {
-    public static Label Label(
-        string text,
-        int left,
-        int top)
+    public static Label Label(string text, int left, int top)
     {
         return new Label
         {
@@ -25,10 +22,7 @@ public static class EntityFormHelpers
         };
     }
 
-    public static TextBox TextBox(
-        int left,
-        int top,
-        int width = 320)
+    public static TextBox TextBox(int left, int top, int width = 320)
     {
         return new TextBox
         {
@@ -38,24 +32,18 @@ public static class EntityFormHelpers
         };
     }
 
-    public static ComboBox ComboBox(
-        int left,
-        int top,
-        int width = 320)
+    public static ComboBox ComboBox(int left, int top, int width = 320)
     {
         return new ComboBox
         {
             Left = left,
             Top = top,
             Width = width,
-            DropDownStyle =
-                ComboBoxStyle.DropDownList
+            DropDownStyle = ComboBoxStyle.DropDownList
         };
     }
 
-    public static Button SaveButton(
-        int left,
-        int top)
+    public static Button SaveButton(int left, int top)
     {
         return new Button
         {
@@ -64,14 +52,11 @@ public static class EntityFormHelpers
             Top = top,
             Width = 110,
             Height = 38,
-            DialogResult =
-                DialogResult.OK
+            DialogResult = DialogResult.OK
         };
     }
 
-    public static Button CancelButton(
-        int left,
-        int top)
+    public static Button CancelButton(int left, int top)
     {
         return new Button
         {
@@ -80,8 +65,7 @@ public static class EntityFormHelpers
             Top = top,
             Width = 110,
             Height = 38,
-            DialogResult =
-                DialogResult.Cancel
+            DialogResult = DialogResult.Cancel
         };
     }
 }
